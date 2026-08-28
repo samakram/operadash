@@ -174,7 +174,7 @@ function TabBar() {
             cn(
               "rounded-t-lg px-4 py-2 text-sm font-medium text-aurora-text/60 transition",
               "hover:bg-black/5 hover:text-aurora-text",
-              isActive && "bg-black/10 text-aurora-text shadow-glass",
+              isActive && "bg-white text-aurora-purple shadow-glass",
             )
           }
         >

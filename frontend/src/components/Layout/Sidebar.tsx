@@ -63,8 +63,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-aurora-text/70 transition duration-300",
-                "hover:bg-black/10 hover:text-aurora-text",
-                isActive && "bg-black/10 text-aurora-text shadow-glass",
+                "hover:bg-black/[0.04] hover:text-aurora-text",
+                isActive && "bg-aurora-gradient text-white shadow-glass-hover hover:bg-aurora-gradient",
               )
             }
           >
