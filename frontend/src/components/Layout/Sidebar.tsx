@@ -10,6 +10,7 @@ import {
   Stethoscope,
   UtensilsCrossed,
   Users,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,49 +31,89 @@ const MODULE_META: Record<string, { label: string; icon: LucideIcon; to: string 
   restaurant: { label: "Restaurant", icon: UtensilsCrossed, to: "/app/restaurant" },
 };
 
-export function Sidebar() {
+function useNavItems(): NavItem[] {
   const { user } = useAuth();
   const { tenant } = useTenant();
 
-  const items: NavItem[] =
-    user?.role === "super_admin"
-      ? [
-          { to: "/admin/tenants", label: "Tenants", icon: Building2 },
-          { to: "/admin/modules", label: "Modules", icon: Blocks },
-          { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-          { to: "/admin/settings", label: "Settings", icon: Settings },
-        ]
-      : [
-          { to: "/app", label: "Dashboard", icon: LayoutGrid },
-          ...(tenant?.enabledModules.map((m) => ({ to: MODULE_META[m].to, label: MODULE_META[m].label, icon: MODULE_META[m].icon })) ?? []),
-          ...(user?.role === "tenant_admin" ? [{ to: "/app/staff", label: "Staff", icon: Users }] : []),
-        ];
+  return user?.role === "super_admin"
+    ? [
+        { to: "/admin/tenants", label: "Tenants", icon: Building2 },
+        { to: "/admin/modules", label: "Modules", icon: Blocks },
+        { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+        { to: "/admin/settings", label: "Settings", icon: Settings },
+      ]
+    : [
+        { to: "/app", label: "Dashboard", icon: LayoutGrid },
+        ...(tenant?.enabledModules.map((m) => ({ to: MODULE_META[m].to, label: MODULE_META[m].label, icon: MODULE_META[m].icon })) ?? []),
+        ...(user?.role === "tenant_admin" ? [{ to: "/app/staff", label: "Staff", icon: Users }] : []),
+      ];
+}
+
+function Brand() {
+  return (
+    <div className="mb-6 flex items-center gap-2 px-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-aurora-gradient font-bold">O</div>
+      <span className="text-lg font-bold tracking-tight">OperaDash</span>
+    </div>
+  );
+}
+
+function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
+  return (
+    <nav className="flex flex-col gap-1">
+      {items.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end={item.to === "/app"}
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-aurora-text/70 transition duration-300",
+              "hover:bg-black/[0.04] hover:text-aurora-text",
+              isActive && "bg-aurora-gradient text-white shadow-glass-hover hover:bg-aurora-gradient",
+            )
+          }
+        >
+          <item.icon size={18} />
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
+  const items = useNavItems();
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col gap-1 border-r border-black/10 bg-black/[0.03] px-3 py-6 md:flex">
-      <div className="mb-6 flex items-center gap-2 px-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-aurora-gradient font-bold">O</div>
-        <span className="text-lg font-bold tracking-tight">OperaDash</span>
-      </div>
-      <nav className="flex flex-col gap-1">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/app"}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-aurora-text/70 transition duration-300",
-                "hover:bg-black/[0.04] hover:text-aurora-text",
-                isActive && "bg-aurora-gradient text-white shadow-glass-hover hover:bg-aurora-gradient",
-              )
-            }
-          >
-            <item.icon size={18} />
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
+    <>
+      {/* Desktop rail — always visible at md+, never rendered below it. */}
+      <aside className="hidden w-64 shrink-0 flex-col gap-1 border-r border-black/10 bg-black/[0.03] px-3 py-6 md:flex">
+        <Brand />
+        <NavList items={items} />
+      </aside>
+
+      {/* Mobile drawer — overlay + slide-in panel, only exists below md. */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="glass-modal-backdrop absolute inset-0 animate-fade-in" onClick={onCloseMobile} />
+          <aside className="glass-card absolute inset-y-0 left-0 flex w-72 animate-slide-in flex-col gap-1 rounded-none rounded-r-2xl px-3 py-6">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <Brand />
+              <button onClick={onCloseMobile} className="rounded-lg p-1.5 text-aurora-text/60 hover:bg-black/5" aria-label="Close menu">
+                <X size={20} />
+              </button>
+            </div>
+            <NavList items={items} onNavigate={onCloseMobile} />
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
