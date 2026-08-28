@@ -12,3 +12,4 @@ coverage/
 backend/prisma/migrations/dev.db
 *.tsbuildinfo
 .ts-out/
+.claude/

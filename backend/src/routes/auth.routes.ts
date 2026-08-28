@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import * as authService from "@/services/auth.service";
 import { authenticate, COOKIE_NAMES } from "@/middleware/auth";
+import { authRateLimit } from "@/middleware/rateLimit";
 import { AppError } from "@/utils/errors";
 
 const router = Router();
@@ -24,7 +25,7 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-router.post("/login", async (req, res, next) => {
+router.post("/login", authRateLimit, async (req, res, next) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
     const { user, accessToken, refreshToken } = await authService.login(email, password);
@@ -43,7 +44,7 @@ router.post("/logout", (_req, res) => {
   res.status(204).send();
 });
 
-router.post("/refresh", async (req, res, next) => {
+router.post("/refresh", authRateLimit, async (req, res, next) => {
   try {
     const refreshToken = req.cookies?.[COOKIE_NAMES.REFRESH_COOKIE] as string | undefined;
     if (!refreshToken) {
@@ -71,7 +72,7 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(8),
 });
 
-router.post("/change-password", authenticate, async (req, res, next) => {
+router.post("/change-password", authenticate, authRateLimit, async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
     await authService.changePassword(req.auth!.userId, currentPassword, newPassword);

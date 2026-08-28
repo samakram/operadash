@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { logger } from "@/utils/logger";
 import { errorHandler, notFoundHandler } from "@/middleware/errorHandler";
+import { apiRateLimit } from "@/middleware/rateLimit";
 
 import authRoutes from "@/routes/auth.routes";
 import tenantsRoutes from "@/routes/tenants.routes";
@@ -19,6 +20,15 @@ import billingRoutes from "@/routes/billing.routes";
 export function createApp(): Express {
   const app = express();
 
+  // Railway (and most PaaS hosts) sit behind a reverse proxy: without this,
+  // req.ip resolves to the proxy's address for every request, which breaks
+  // both per-client rate limiting and the client IP recorded in audit logs.
+  // "1" trusts exactly one hop (the platform's own edge proxy), not an
+  // attacker-supplied X-Forwarded-For chain.
+  if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1);
+  }
+
   app.use(helmet());
   app.use(cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173", credentials: true }));
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/health" } }));
@@ -29,6 +39,8 @@ export function createApp(): Express {
   app.use(cookieParser());
 
   app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+
+  app.use("/api", apiRateLimit);
 
   app.use("/api/auth", authRoutes);
   app.use("/api/tenants", tenantsRoutes);

@@ -13,15 +13,26 @@ export interface RefreshTokenPayload {
   tokenVersion: number;
 }
 
-const ACCESS_SECRET = requireEnv("JWT_ACCESS_SECRET");
-const REFRESH_SECRET = requireEnv("JWT_REFRESH_SECRET");
+const ACCESS_SECRET = requireSecret("JWT_ACCESS_SECRET");
+const REFRESH_SECRET = requireSecret("JWT_REFRESH_SECRET");
 const ACCESS_EXPIRES_IN = (process.env.JWT_ACCESS_EXPIRES_IN ?? "24h") as SignOptions["expiresIn"];
 const REFRESH_EXPIRES_IN = (process.env.JWT_REFRESH_EXPIRES_IN ?? "7d") as SignOptions["expiresIn"];
 
-function requireEnv(name: string): string {
+if (ACCESS_SECRET === REFRESH_SECRET) {
+  // Reusing one secret means a stolen/leaked refresh token's signature is
+  // also valid for signing access tokens (and vice versa) if the payload
+  // shapes ever overlap — keep the two trust boundaries independent.
+  throw new Error("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different values");
+}
+
+/** Requires the env var to be set AND long enough to resist brute-forcing the HMAC key. */
+function requireSecret(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
+  }
+  if (value.length < 32) {
+    throw new Error(`${name} must be at least 32 characters — generate one with \`openssl rand -base64 32\``);
   }
   return value;
 }

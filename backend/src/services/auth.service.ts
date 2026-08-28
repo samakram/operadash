@@ -6,6 +6,13 @@ import type { User } from "@prisma/client";
 
 const BCRYPT_ROUNDS = 12;
 
+// A precomputed hash of a random, never-used password. When the looked-up
+// user doesn't exist, we still run bcrypt.compare against this so login
+// takes the same amount of time either way — otherwise the "user not
+// found" path returns near-instantly while "wrong password" takes ~bcrypt's
+// full compare time, letting an attacker enumerate valid emails by timing.
+const DUMMY_HASH = "$2a$12$CwTycUXWue0Thq9StjUM0uJ8lo6bnvUpBaG.G/JJaB0hVKvhZi.Wq";
+
 export function sanitizeUser(user: User) {
   const { password: _password, ...safe } = user;
   return safe;
@@ -17,12 +24,9 @@ export async function hashPassword(plain: string): Promise<string> {
 
 export async function login(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-  if (!user || !user.active) {
-    throw AppError.unauthorized("Invalid email or password");
-  }
 
-  const matches = await bcrypt.compare(password, user.password);
-  if (!matches) {
+  const matches = await bcrypt.compare(password, user?.password ?? DUMMY_HASH);
+  if (!user || !user.active || !matches) {
     throw AppError.unauthorized("Invalid email or password");
   }
 
