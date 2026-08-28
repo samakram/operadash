@@ -1,0 +1,965 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  super_admin
+  tenant_admin
+  staff
+}
+
+enum PlanTier {
+  free
+  starter
+  pro
+  enterprise
+}
+
+enum ModuleName {
+  hotel
+  student
+  patient
+  restaurant
+}
+
+enum RoomType {
+  single
+  double
+  suite
+  deluxe
+}
+
+enum RoomStatus {
+  vacant
+  occupied
+  cleaning
+  maintenance
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  partial
+  refunded
+}
+
+enum TaskType {
+  cleaning
+  maintenance
+  check_in
+  check_out
+}
+
+enum TaskStatus {
+  pending
+  in_progress
+  completed
+}
+
+enum MaintenancePriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum MaintenanceStatus {
+  open
+  in_progress
+  completed
+  closed
+}
+
+enum InvoiceStatus {
+  unpaid
+  paid
+  partial
+}
+
+enum StudentStatus {
+  active
+  inactive
+  graduated
+  suspended
+}
+
+enum ClassStatus {
+  active
+  completed
+  cancelled
+}
+
+enum EnrollmentStatus {
+  active
+  completed
+  dropped
+  suspended
+}
+
+enum TuitionStatus {
+  pending
+  partial
+  paid
+  overdue
+}
+
+enum AnnouncementAudience {
+  all_students
+  class_specific
+  instructor_only
+}
+
+enum AppointmentStatus {
+  scheduled
+  checked_in
+  completed
+  cancelled
+  no_show
+}
+
+enum PrescriptionFrequency {
+  once_daily
+  twice_daily
+  three_times_daily
+  as_needed
+}
+
+enum LabStatus {
+  normal
+  abnormal
+  critical
+}
+
+enum ClaimStatus {
+  pending
+  submitted
+  approved
+  denied
+}
+
+enum MenuCategory {
+  appetizers
+  mains
+  desserts
+  drinks
+  specials
+}
+
+enum OrderStatus {
+  pending
+  cooking
+  ready
+  served
+  completed
+  cancelled
+}
+
+enum OrderItemStatus {
+  pending
+  cooking
+  ready
+  served
+}
+
+enum ShiftRole {
+  waiter
+  chef
+  cashier
+  manager
+}
+
+enum ShiftStatus {
+  scheduled
+  checked_in
+  active
+  completed
+}
+
+enum InventoryUnit {
+  kg
+  liters
+  pieces
+  units
+}
+
+enum InventoryReason {
+  purchase
+  usage
+  waste
+  adjustment
+}
+
+enum TableStatus {
+  vacant
+  occupied
+  reserved
+  cleaning
+}
+
+enum ReservationStatus {
+  confirmed
+  seated
+  completed
+  cancelled
+  no_show
+}
+
+// ============================================================
+// SHARED / PLATFORM TABLES
+// ============================================================
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  password     String    @db.VarChar(255)
+  tenantId     String?   @map("tenant_id") @db.Uuid
+  role         Role
+  firstName    String?   @map("first_name") @db.VarChar(255)
+  lastName     String?   @map("last_name") @db.VarChar(255)
+  avatarUrl    String?   @map("avatar_url") @db.VarChar(255)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Tenant {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String   @db.VarChar(255)
+  subdomain         String   @unique @db.VarChar(255)
+  domain            String?  @db.VarChar(255)
+  plan              PlanTier @default(starter)
+  enabledModules    ModuleName[] @default([]) @map("enabled_modules")
+  logoUrl           String?  @map("logo_url") @db.VarChar(255)
+  settings          Json     @default("{}")
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at")
+  stripeCustomerId  String?  @map("stripe_customer_id") @db.VarChar(255)
+  monthlyRevenue    Decimal  @default(0) @map("monthly_revenue") @db.Decimal(10, 2)
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("tenants")
+}
+
+model Module {
+  id                String     @id @default(uuid()) @db.Uuid
+  name              ModuleName
+  version           String     @default("1.0.0") @db.VarChar(50)
+  description       String?
+  enabledForTenants String[]   @default([]) @map("enabled_for_tenants") @db.Uuid
+  createdAt         DateTime   @default(now()) @map("created_at")
+
+  @@unique([name])
+  @@map("modules")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  action     String   @db.VarChar(255)
+  entityType String   @map("entity_type") @db.VarChar(255)
+  entityId   String?  @map("entity_id") @db.Uuid
+  changes    Json?
+  ipAddress  String?  @map("ip_address") @db.VarChar(50)
+  timestamp  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model FeatureFlag {
+  id          String     @id @default(uuid()) @db.Uuid
+  tenantId    String     @map("tenant_id") @db.Uuid
+  moduleName  ModuleName @map("module_name")
+  featureName String     @map("feature_name") @db.VarChar(255)
+  enabled     Boolean    @default(false)
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  @@unique([tenantId, moduleName, featureName])
+  @@map("feature_flags")
+}
+
+// ============================================================
+// HOTEL MODULE
+// ============================================================
+
+model HotelGuest {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  firstName     String    @map("first_name") @db.VarChar(255)
+  lastName      String    @map("last_name") @db.VarChar(255)
+  email         String?   @db.VarChar(255)
+  phone         String?   @db.VarChar(20)
+  address       String?
+  city          String?   @db.VarChar(255)
+  country       String?   @db.VarChar(255)
+  checkInDate   DateTime? @map("check_in_date") @db.Date
+  checkOutDate  DateTime? @map("check_out_date") @db.Date
+  notes         String?
+  vip           Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  reservations HotelReservation[]
+  invoices     HotelInvoice[]
+  rooms        HotelRoom[]
+
+  @@index([tenantId])
+  @@map("hotel_guests")
+}
+
+model HotelRoom {
+  id                String     @id @default(uuid()) @db.Uuid
+  tenantId          String     @map("tenant_id") @db.Uuid
+  roomNumber        String     @map("room_number") @db.VarChar(50)
+  roomType          RoomType   @map("room_type")
+  capacity          Int
+  pricePerNight     Decimal    @map("price_per_night") @db.Decimal(10, 2)
+  status            RoomStatus @default(vacant)
+  occupiedByGuestId String?    @map("occupied_by_guest_id") @db.Uuid
+  floorNumber       Int?       @map("floor_number")
+  amenities         String[]   @default([])
+  notes             String?
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  occupiedByGuest       HotelGuest?               @relation(fields: [occupiedByGuestId], references: [id], onDelete: SetNull)
+  reservations          HotelReservation[]
+  staffAssignments      HotelStaffAssignment[]
+  maintenanceRequests   HotelMaintenanceRequest[]
+
+  @@index([tenantId])
+  @@map("hotel_rooms")
+}
+
+model HotelReservation {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @map("tenant_id") @db.Uuid
+  guestId         String        @map("guest_id") @db.Uuid
+  roomId          String        @map("room_id") @db.Uuid
+  checkIn         DateTime      @map("check_in") @db.Date
+  checkOut        DateTime      @map("check_out") @db.Date
+  numberOfNights  Int?          @map("number_of_nights")
+  totalPrice      Decimal       @map("total_price") @db.Decimal(10, 2)
+  paymentStatus   PaymentStatus @default(pending) @map("payment_status")
+  paymentMethod   String?       @map("payment_method") @db.VarChar(100)
+  notes           String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  guest    HotelGuest     @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  room     HotelRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  invoices HotelInvoice[]
+
+  @@index([tenantId])
+  @@map("hotel_reservations")
+}
+
+model HotelStaffAssignment {
+  id             String     @id @default(uuid()) @db.Uuid
+  tenantId       String     @map("tenant_id") @db.Uuid
+  staffUserId    String     @map("staff_user_id") @db.Uuid
+  roomId         String     @map("room_id") @db.Uuid
+  taskType       TaskType   @map("task_type")
+  status         TaskStatus @default(pending)
+  assignedDate   DateTime   @map("assigned_date") @db.Date
+  completedDate  DateTime?  @map("completed_date") @db.Date
+  notes          String?
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  room HotelRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("hotel_staff_assignments")
+}
+
+model HotelMaintenanceRequest {
+  id                 String              @id @default(uuid()) @db.Uuid
+  tenantId           String              @map("tenant_id") @db.Uuid
+  roomId             String              @map("room_id") @db.Uuid
+  issueDescription   String              @map("issue_description")
+  priority           MaintenancePriority @default(medium)
+  status             MaintenanceStatus   @default(open)
+  assignedTo         String?             @map("assigned_to") @db.Uuid
+  createdAt          DateTime            @default(now()) @map("created_at")
+  completedAt        DateTime?           @map("completed_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  room HotelRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("hotel_maintenance_requests")
+}
+
+model HotelInvoice {
+  id            String        @id @default(uuid()) @db.Uuid
+  tenantId      String        @map("tenant_id") @db.Uuid
+  guestId       String        @map("guest_id") @db.Uuid
+  reservationId String        @map("reservation_id") @db.Uuid
+  amount        Decimal       @db.Decimal(10, 2)
+  tax           Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(10, 2)
+  paidAt        DateTime?     @map("paid_at")
+  paymentMethod String?       @map("payment_method") @db.VarChar(100)
+  status        InvoiceStatus @default(unpaid)
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  guest       HotelGuest       @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  reservation HotelReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("hotel_invoices")
+}
+
+// ============================================================
+// STUDENT MODULE
+// ============================================================
+
+model StudentStudent {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @map("tenant_id") @db.Uuid
+  firstName       String        @map("first_name") @db.VarChar(255)
+  lastName        String        @map("last_name") @db.VarChar(255)
+  email           String?       @db.VarChar(255)
+  phone           String?       @db.VarChar(20)
+  dateOfBirth     DateTime?     @map("date_of_birth") @db.Date
+  gender          String?       @db.VarChar(50)
+  address         String?
+  parentName      String?       @map("parent_name") @db.VarChar(255)
+  parentEmail     String?       @map("parent_email") @db.VarChar(255)
+  parentPhone     String?       @map("parent_phone") @db.VarChar(20)
+  enrollmentDate  DateTime      @map("enrollment_date") @db.Date
+  status          StudentStatus @default(active)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  enrollments    StudentEnrollment[]
+  attendance     StudentAttendance[]
+  grades         StudentGrade[]
+  tuitionRecords StudentTuitionRecord[]
+
+  @@index([tenantId])
+  @@map("student_students")
+}
+
+model StudentInstructor {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  firstName       String   @map("first_name") @db.VarChar(255)
+  lastName        String   @map("last_name") @db.VarChar(255)
+  email           String?  @db.VarChar(255)
+  phone           String?  @db.VarChar(20)
+  specialization  String?  @db.VarChar(255)
+  bio             String?
+  hireDate        DateTime? @map("hire_date") @db.Date
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  classes StudentClass[]
+
+  @@index([tenantId])
+  @@map("student_instructors")
+}
+
+model StudentClass {
+  id               String      @id @default(uuid()) @db.Uuid
+  tenantId         String      @map("tenant_id") @db.Uuid
+  courseName       String      @map("course_name") @db.VarChar(255)
+  courseCode       String?     @map("course_code") @db.VarChar(50)
+  instructorId     String      @map("instructor_id") @db.Uuid
+  description      String?
+  schedule         Json?
+  capacity         Int
+  enrolledCount    Int         @default(0) @map("enrolled_count")
+  pricePerCourse   Decimal?    @map("price_per_course") @db.Decimal(10, 2)
+  startDate        DateTime?   @map("start_date") @db.Date
+  endDate          DateTime?   @map("end_date") @db.Date
+  status           ClassStatus @default(active)
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  instructor     StudentInstructor      @relation(fields: [instructorId], references: [id], onDelete: Restrict)
+  enrollments    StudentEnrollment[]
+  attendance     StudentAttendance[]
+  grades         StudentGrade[]
+  tuitionRecords StudentTuitionRecord[]
+  announcements  StudentAnnouncement[]
+
+  @@index([tenantId])
+  @@map("student_classes")
+}
+
+model StudentEnrollment {
+  id                  String            @id @default(uuid()) @db.Uuid
+  tenantId            String            @map("tenant_id") @db.Uuid
+  studentId           String            @map("student_id") @db.Uuid
+  classId             String            @map("class_id") @db.Uuid
+  enrollmentDate      DateTime          @map("enrollment_date") @db.Date
+  status              EnrollmentStatus  @default(active)
+  progressPercentage  Int               @default(0) @map("progress_percentage")
+  createdAt           DateTime          @default(now()) @map("created_at")
+
+  student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   StudentClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("student_enrollments")
+}
+
+model StudentAttendance {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  studentId       String   @map("student_id") @db.Uuid
+  classId         String   @map("class_id") @db.Uuid
+  attendanceDate  DateTime @map("attendance_date") @db.Date
+  present         Boolean
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   StudentClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("student_attendance")
+}
+
+model StudentGrade {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  studentId       String   @map("student_id") @db.Uuid
+  classId         String   @map("class_id") @db.Uuid
+  assignmentName  String?  @map("assignment_name") @db.VarChar(255)
+  score           Decimal  @db.Decimal(5, 2)
+  maxScore        Decimal  @map("max_score") @db.Decimal(5, 2)
+  weight          Int      @default(100)
+  submittedDate   DateTime? @map("submitted_date") @db.Date
+  comments        String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   StudentClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("student_grades")
+}
+
+model StudentTuitionRecord {
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @map("tenant_id") @db.Uuid
+  studentId      String        @map("student_id") @db.Uuid
+  classId        String        @map("class_id") @db.Uuid
+  amountDue      Decimal       @map("amount_due") @db.Decimal(10, 2)
+  amountPaid     Decimal       @default(0) @map("amount_paid") @db.Decimal(10, 2)
+  dueDate        DateTime      @map("due_date") @db.Date
+  paidDate       DateTime?     @map("paid_date") @db.Date
+  paymentMethod  String?       @map("payment_method") @db.VarChar(100)
+  status         TuitionStatus @default(pending)
+  notes          String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   StudentClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("student_tuition_records")
+}
+
+model StudentAnnouncement {
+  id             String               @id @default(uuid()) @db.Uuid
+  tenantId       String               @map("tenant_id") @db.Uuid
+  title          String               @db.VarChar(255)
+  content        String
+  audienceType   AnnouncementAudience @map("audience_type")
+  targetClassId  String?              @map("target_class_id") @db.Uuid
+  createdBy      String               @map("created_by") @db.Uuid
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  targetClass StudentClass? @relation(fields: [targetClassId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("student_announcements")
+}
+
+// ============================================================
+// PATIENT MODULE
+// ============================================================
+
+model PatientPatient {
+  id                       String    @id @default(uuid()) @db.Uuid
+  tenantId                 String    @map("tenant_id") @db.Uuid
+  firstName                String    @map("first_name") @db.VarChar(255)
+  lastName                 String    @map("last_name") @db.VarChar(255)
+  email                    String?   @db.VarChar(255)
+  phone                    String?   @db.VarChar(20)
+  dateOfBirth              DateTime  @map("date_of_birth") @db.Date
+  gender                   String?   @db.VarChar(50)
+  address                  String?
+  city                     String?   @db.VarChar(255)
+  country                  String?   @db.VarChar(255)
+  emergencyContactName     String?   @map("emergency_contact_name") @db.VarChar(255)
+  emergencyContactPhone    String?   @map("emergency_contact_phone") @db.VarChar(20)
+  medicalHistorySummary    String?   @map("medical_history_summary")
+  allergies                String[]  @default([])
+  chronicConditions        String[]  @default([]) @map("chronic_conditions")
+  bloodType                String?   @map("blood_type") @db.VarChar(10)
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+
+  appointments    PatientAppointment[]
+  medicalRecords  PatientMedicalRecord[]
+  prescriptions   PatientPrescription[]
+  vitalSigns      PatientVitalSign[]
+  labResults      PatientLabResult[]
+  insurance       PatientInsurance[]
+  billing         PatientBilling[]
+
+  @@index([tenantId])
+  @@map("patient_patients")
+}
+
+model PatientProvider {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  firstName       String   @map("first_name") @db.VarChar(255)
+  lastName        String   @map("last_name") @db.VarChar(255)
+  email           String?  @db.VarChar(255)
+  phone           String?  @db.VarChar(20)
+  specialization  String?  @db.VarChar(255)
+  licenseNumber   String?  @map("license_number") @db.VarChar(100)
+  bio             String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  appointments   PatientAppointment[]
+  medicalRecords PatientMedicalRecord[]
+  prescriptions  PatientPrescription[]
+
+  @@index([tenantId])
+  @@map("patient_providers")
+}
+
+model PatientAppointment {
+  id                    String             @id @default(uuid()) @db.Uuid
+  tenantId              String             @map("tenant_id") @db.Uuid
+  patientId             String             @map("patient_id") @db.Uuid
+  providerId            String             @map("provider_id") @db.Uuid
+  appointmentDatetime   DateTime           @map("appointment_datetime")
+  durationMinutes       Int                @default(30) @map("duration_minutes")
+  reasonForVisit        String?            @map("reason_for_visit") @db.VarChar(255)
+  status                AppointmentStatus  @default(scheduled)
+  notes                 String?
+  reminderSent          Boolean            @default(false) @map("reminder_sent")
+  reminderSentAt        DateTime?          @map("reminder_sent_at")
+  createdAt             DateTime           @default(now()) @map("created_at")
+
+  patient  PatientPatient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider PatientProvider   @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  billing  PatientBilling[]
+
+  @@index([tenantId])
+  @@map("patient_appointments")
+}
+
+model PatientMedicalRecord {
+  id                     String    @id @default(uuid()) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  patientId              String    @map("patient_id") @db.Uuid
+  visitDate              DateTime  @map("visit_date") @db.Date
+  chiefComplaint         String?   @map("chief_complaint")
+  examinationFindings    String?   @map("examination_findings")
+  diagnosis              String?
+  treatmentPlan          String?   @map("treatment_plan")
+  providerId             String    @map("provider_id") @db.Uuid
+  followUpDate           DateTime? @map("follow_up_date") @db.Date
+  notes                  String?
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  patient  PatientPatient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider PatientProvider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@map("patient_medical_records")
+}
+
+model PatientPrescription {
+  id                       String                 @id @default(uuid()) @db.Uuid
+  tenantId                 String                 @map("tenant_id") @db.Uuid
+  patientId                String                 @map("patient_id") @db.Uuid
+  medicationName           String                 @map("medication_name") @db.VarChar(255)
+  dosage                   String                 @db.VarChar(100)
+  frequency                PrescriptionFrequency
+  startDate                DateTime               @map("start_date") @db.Date
+  endDate                  DateTime?              @map("end_date") @db.Date
+  refillsRemaining         Int                    @default(0) @map("refills_remaining")
+  specialInstructions      String?                @map("special_instructions")
+  prescribingProviderId    String                 @map("prescribing_provider_id") @db.Uuid
+  createdAt                DateTime               @default(now()) @map("created_at")
+
+  patient             PatientPatient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  prescribingProvider PatientProvider @relation(fields: [prescribingProviderId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@map("patient_prescriptions")
+}
+
+model PatientVitalSign {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  patientId   String   @map("patient_id") @db.Uuid
+  visitDate   DateTime @map("visit_date") @db.Date
+  bloodPressure String? @map("blood_pressure") @db.VarChar(20)
+  heartRate   Int?     @map("heart_rate")
+  temperature Decimal? @db.Decimal(4, 1)
+  weight      Decimal? @db.Decimal(6, 2)
+  height      Decimal? @db.Decimal(5, 2)
+  bmi         Decimal? @db.Decimal(5, 2)
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  patient PatientPatient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("patient_vital_signs")
+}
+
+model PatientLabResult {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  testName       String    @map("test_name") @db.VarChar(255)
+  testDate       DateTime  @map("test_date") @db.Date
+  resultValue    String?   @map("result_value") @db.VarChar(255)
+  referenceRange String?   @map("reference_range") @db.VarChar(255)
+  unit           String?   @db.VarChar(100)
+  status         LabStatus @default(normal)
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  patient PatientPatient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("patient_lab_results")
+}
+
+model PatientInsurance {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  patientId       String    @map("patient_id") @db.Uuid
+  providerName    String?   @map("provider_name") @db.VarChar(255)
+  policyNumber    String?   @map("policy_number") @db.VarChar(255)
+  groupNumber     String?   @map("group_number") @db.VarChar(255)
+  effectiveDate   DateTime? @map("effective_date") @db.Date
+  expirationDate  DateTime? @map("expiration_date") @db.Date
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  patient PatientPatient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("patient_insurance")
+}
+
+model PatientBilling {
+  id                      String      @id @default(uuid()) @db.Uuid
+  tenantId                String      @map("tenant_id") @db.Uuid
+  patientId               String      @map("patient_id") @db.Uuid
+  appointmentId           String?     @map("appointment_id") @db.Uuid
+  amountCharged           Decimal     @map("amount_charged") @db.Decimal(10, 2)
+  insuranceClaimStatus    ClaimStatus @default(pending) @map("insurance_claim_status")
+  patientResponsibility   Decimal?    @map("patient_responsibility") @db.Decimal(10, 2)
+  paidDate                DateTime?   @map("paid_date") @db.Date
+  paymentMethod           String?     @map("payment_method") @db.VarChar(100)
+  createdAt                DateTime    @default(now()) @map("created_at")
+
+  patient     PatientPatient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment PatientAppointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("patient_billing")
+}
+
+// ============================================================
+// RESTAURANT MODULE
+// ============================================================
+
+model RestaurantMenuItem {
+  id               String       @id @default(uuid()) @db.Uuid
+  tenantId         String       @map("tenant_id") @db.Uuid
+  name             String       @db.VarChar(255)
+  description      String?
+  price            Decimal      @db.Decimal(10, 2)
+  category         MenuCategory
+  imageUrl         String?      @map("image_url") @db.VarChar(255)
+  available        Boolean      @default(true)
+  prepTimeMinutes  Int?         @map("prep_time_minutes")
+  calories         Int?
+  dietaryTags      String[]     @default([]) @map("dietary_tags")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  orderItems RestaurantOrderItem[]
+
+  @@index([tenantId])
+  @@map("restaurant_menu_items")
+}
+
+model RestaurantOrder {
+  id             String      @id @default(uuid()) @db.Uuid
+  tenantId       String      @map("tenant_id") @db.Uuid
+  orderNumber    String      @unique @map("order_number") @db.VarChar(50)
+  tableId        String?     @map("table_id") @db.Uuid
+  customerId     String?     @map("customer_id") @db.Uuid
+  status         OrderStatus @default(pending)
+  itemsCount     Int?        @map("items_count")
+  subtotal       Decimal?    @db.Decimal(10, 2)
+  tax            Decimal?    @db.Decimal(10, 2)
+  totalAmount    Decimal?    @map("total_amount") @db.Decimal(10, 2)
+  orderTime      DateTime    @default(now()) @map("order_time")
+  servedTime     DateTime?   @map("served_time")
+  completedTime  DateTime?   @map("completed_time")
+  paymentMethod  String?     @map("payment_method") @db.VarChar(100)
+  notes          String?
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  table    RestaurantTable?      @relation("TableOrders", fields: [tableId], references: [id], onDelete: SetNull)
+  customer RestaurantCustomer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    RestaurantOrderItem[]
+
+  @@index([tenantId])
+  @@map("restaurant_orders")
+}
+
+model RestaurantOrderItem {
+  id               String          @id @default(uuid()) @db.Uuid
+  tenantId         String          @map("tenant_id") @db.Uuid
+  orderId          String          @map("order_id") @db.Uuid
+  menuItemId       String          @map("menu_item_id") @db.Uuid
+  quantity         Int
+  specialRequests  String?         @map("special_requests")
+  status           OrderItemStatus @default(pending)
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  order    RestaurantOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem RestaurantMenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@map("restaurant_order_items")
+}
+
+model RestaurantCustomer {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  name           String    @db.VarChar(255)
+  phone          String?   @db.VarChar(20)
+  email          String?   @db.VarChar(255)
+  totalSpent     Decimal   @default(0) @map("total_spent") @db.Decimal(10, 2)
+  visitCount     Int       @default(0) @map("visit_count")
+  lastVisit      DateTime? @map("last_visit")
+  preferences    String?
+  loyaltyPoints  Int       @default(0) @map("loyalty_points")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  orders        RestaurantOrder[]
+  reservations  RestaurantReservation[]
+
+  @@index([tenantId])
+  @@map("restaurant_customers")
+}
+
+model RestaurantStaffShift {
+  id             String      @id @default(uuid()) @db.Uuid
+  tenantId       String      @map("tenant_id") @db.Uuid
+  staffUserId    String      @map("staff_user_id") @db.Uuid
+  shiftDate      DateTime    @map("shift_date") @db.Date
+  startTime      DateTime    @map("start_time") @db.Time
+  endTime        DateTime    @map("end_time") @db.Time
+  role           ShiftRole
+  status         ShiftStatus @default(scheduled)
+  checkedInAt    DateTime?   @map("checked_in_at")
+  checkedOutAt   DateTime?   @map("checked_out_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("restaurant_staff_shifts")
+}
+
+model RestaurantInventory {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  name            String    @db.VarChar(255)
+  quantity        Decimal   @db.Decimal(10, 2)
+  unit            InventoryUnit
+  reorderLevel    Decimal?  @map("reorder_level") @db.Decimal(10, 2)
+  costPerUnit     Decimal?  @map("cost_per_unit") @db.Decimal(10, 2)
+  supplierId      String?   @map("supplier_id") @db.Uuid
+  lastRestocked   DateTime? @map("last_restocked")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  logs RestaurantInventoryLog[]
+
+  @@index([tenantId])
+  @@map("restaurant_inventory")
+}
+
+model RestaurantInventoryLog {
+  id              String           @id @default(uuid()) @db.Uuid
+  tenantId        String           @map("tenant_id") @db.Uuid
+  itemId          String           @map("item_id") @db.Uuid
+  changeQuantity  Decimal          @map("change_quantity") @db.Decimal(10, 2)
+  reason          InventoryReason
+  changedBy       String           @map("changed_by") @db.Uuid
+  changedAt       DateTime         @default(now()) @map("changed_at")
+
+  item RestaurantInventory @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("restaurant_inventory_logs")
+}
+
+model RestaurantTable {
+  id              String      @id @default(uuid()) @db.Uuid
+  tenantId        String      @map("tenant_id") @db.Uuid
+  tableNumber     String      @map("table_number") @db.VarChar(50)
+  capacity        Int
+  status          TableStatus @default(vacant)
+  currentOrderId  String?     @map("current_order_id") @db.Uuid
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  orders       RestaurantOrder[]       @relation("TableOrders")
+  reservations RestaurantReservation[]
+
+  @@index([tenantId])
+  @@map("restaurant_tables")
+}
+
+model RestaurantReservation {
+  id                  String             @id @default(uuid()) @db.Uuid
+  tenantId            String             @map("tenant_id") @db.Uuid
+  customerId          String             @map("customer_id") @db.Uuid
+  reservationDate     DateTime           @map("reservation_date") @db.Date
+  reservationTime     DateTime           @map("reservation_time") @db.Time
+  partySize           Int                @map("party_size")
+  tableId             String?            @map("table_id") @db.Uuid
+  status              ReservationStatus  @default(confirmed)
+  notes               String?
+  createdAt           DateTime           @default(now()) @map("created_at")
+
+  customer RestaurantCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  table    RestaurantTable?   @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("restaurant_reservations")
+}
