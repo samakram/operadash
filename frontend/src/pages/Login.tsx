@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Sparkles, Mail, Lock } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { GlassInput } from "@/components/Common/GlassInput";
 import { AuroraButton } from "@/components/Common/AuroraButton";
+import { Toggle } from "@/components/Common/Toggle";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
@@ -64,15 +65,7 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <label className="flex items-center gap-2 text-sm text-aurora-text/70">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-black/30 bg-black/10"
-            />
-            Remember me
-          </label>
+          <Toggle size="sm" label="Remember me" checked={rememberMe} onChange={setRememberMe} />
 
           {error && <p className="text-sm text-aurora-error">{error}</p>}
 
@@ -81,12 +74,11 @@ export default function Login() {
           </AuroraButton>
         </form>
 
-        <div className="mt-6 flex flex-col items-center gap-2 text-xs text-aurora-text/40 sm:flex-row sm:justify-between">
-          <span className="inline-flex items-center gap-1 whitespace-nowrap">
-            <Mail size={12} /> Need access? Contact your admin
-          </span>
-          <button type="button" className="inline-flex items-center gap-1 whitespace-nowrap hover:text-aurora-text/70">
-            <Lock size={12} /> Forgot password?
+        <div className="mt-5 flex items-center justify-center gap-3 text-[11px] text-aurora-text/35">
+          <span>Need access? Contact your admin</span>
+          <span className="text-aurora-text/20">&middot;</span>
+          <button type="button" className="hover:text-aurora-text/60">
+            Forgot password?
           </button>
         </div>
       </GlassCard>

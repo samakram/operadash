@@ -7,6 +7,7 @@ import { GlassInput, GlassSelect, GlassTextarea } from "@/components/Common/Glas
 import { Modal } from "@/components/Common/Modal";
 import { Table, type Column } from "@/components/Common/Table";
 import { useToast } from "@/components/Common/Toast";
+import { Toggle } from "@/components/Common/Toggle";
 import { useAuth } from "@/hooks/useAuth";
 
 export type FieldType = "text" | "email" | "number" | "date" | "datetime-local" | "time" | "select" | "textarea" | "checkbox" | "tags";
@@ -347,15 +348,13 @@ export function EntityCrudPage<T extends Record<string, unknown>>({
                   onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
                 />
               ) : field.type === "checkbox" ? (
-                <label className="mt-6 flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
+                <div className="mt-6">
+                  <Toggle
+                    label={field.label}
                     checked={Boolean(formValues[field.name])}
-                    onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.checked }))}
-                    className="h-4 w-4 rounded border-black/30 bg-black/10"
+                    onChange={(checked) => setFormValues((prev) => ({ ...prev, [field.name]: checked }))}
                   />
-                  {field.label}
-                </label>
+                </div>
               ) : (
                 <GlassInput
                   label={field.label}

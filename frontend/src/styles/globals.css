@@ -6,6 +6,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Forces browser-native chrome (select dropdowns, date/time pickers, form
+   control outlines) to render light regardless of the OS/browser dark-mode
+   setting — without this, those specific elements ignore all the Tailwind
+   classes on the page and render with a dark (often blue-tinted) native UI. */
+:root {
+  color-scheme: light only;
+}
+
 html,
 body,
 #root {
@@ -14,8 +22,8 @@ body,
 
 body {
   @apply bg-aurora-bg text-aurora-text font-sans antialiased;
-  background-image: var(--tw-gradient-stops), radial-gradient(circle at top left, rgba(121, 40, 202, 0.25), transparent 50%),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.25), transparent 50%);
+  background-image: radial-gradient(circle at top left, rgba(121, 40, 202, 0.1), transparent 50%),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.1), transparent 50%);
   background-attachment: fixed;
 }
 

@@ -8,6 +8,7 @@ import { GlassSelect } from "@/components/Common/GlassInput";
 import { Modal } from "@/components/Common/Modal";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
+import { Toggle } from "@/components/Common/Toggle";
 import { formatCurrency, formatDate, initials, titleCase } from "@/lib/utils";
 import type { ModuleName, PlanTier, Tenant } from "@/hooks/useTenant";
 
@@ -122,15 +123,9 @@ export default function TenantDetail() {
         <GlassCard className="flex flex-col gap-3">
           <h3>Enabled modules</h3>
           {ALL_MODULES.map((m) => (
-            <label key={m} className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-black/5">
-              {titleCase(m)}
-              <input
-                type="checkbox"
-                checked={tenant.enabledModules.includes(m)}
-                onChange={() => toggleModule(m)}
-                className="h-4 w-4 rounded border-black/30 bg-black/10"
-              />
-            </label>
+            <div key={m} className="rounded-lg px-2 py-1.5 hover:bg-black/5">
+              <Toggle label={titleCase(m)} checked={tenant.enabledModules.includes(m)} onChange={() => toggleModule(m)} />
+            </div>
           ))}
         </GlassCard>
 

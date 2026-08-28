@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: operadash
+          POSTGRES_PASSWORD: operadash
+          POSTGRES_DB: operadash
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U operadash"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://operadash:operadash@localhost:5432/operadash?schema=public
+      JWT_ACCESS_SECRET: ci-only-access-secret-at-least-32-characters-long
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-32-characters-and-different
+      NODE_ENV: test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
+      - run: npx eslint "src/**/*.ts"
+
+      # This is the real thing the local dev sandbox couldn't do: prove the
+      # committed migrations actually apply cleanly to a fresh Postgres.
+      - run: npx prisma migrate deploy
+
+      - run: npx vitest run
+      - run: npm run build
+
+      - name: Seed and smoke-test a real running server
+        run: |
+          npm run seed
+          node dist/server.js &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4000/health && break
+            sleep 1
+          done
+          curl -sf http://localhost:4000/health
+          # Unauthenticated requests to protected routes must be rejected, not 500.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4000/api/tenants)" = "401"
+          kill $SERVER_PID
+        env:
+          PORT: 4000
+          CORS_ORIGIN: http://localhost:5173
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npx tsc -b
+      - run: npx eslint "src/**/*.{ts,tsx}"
+      - run: npm run build

@@ -8,6 +8,7 @@ import { GlassInput, GlassSelect } from "@/components/Common/GlassInput";
 import { Modal } from "@/components/Common/Modal";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
+import { Toggle } from "@/components/Common/Toggle";
 import { formatCurrency, titleCase } from "@/lib/utils";
 import type { ModuleName, PlanTier, Tenant } from "@/hooks/useTenant";
 
@@ -254,17 +255,11 @@ export default function TenantsList() {
             </div>
             <div className="sm:col-span-2">
               <p className="mb-2 text-sm font-medium text-aurora-text/90">Enabled modules</p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-4">
                 {MODULE_OPTIONS.map((opt) => (
-                  <label key={opt.value} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.enabledModules.includes(opt.value)}
-                      onChange={() => toggleModule(opt.value)}
-                      className="h-4 w-4 rounded border-black/30 bg-black/10"
-                    />
-                    {opt.label}
-                  </label>
+                  <div key={opt.value} className="flex items-center gap-2 text-sm">
+                    <Toggle size="sm" checked={form.enabledModules.includes(opt.value)} onChange={() => toggleModule(opt.value)} label={opt.label} />
+                  </div>
                 ))}
               </div>
             </div>
