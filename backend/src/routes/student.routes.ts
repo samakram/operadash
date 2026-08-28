@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import * as studentService from "@/services/student.service";
-import { authenticate } from "@/middleware/auth";
+import { authenticate, requireRole } from "@/middleware/auth";
 import { resolveTenant } from "@/middleware/tenantIsolation";
 import { requireModule } from "@/middleware/moduleGuard";
 import { paginationSchema } from "@/utils/validators";
@@ -11,6 +11,8 @@ import { recordAudit } from "@/utils/audit";
 
 const router = Router();
 router.use(authenticate, resolveTenant, requireModule("student"));
+// Staff can read/create/update within the module; deleting is admin-only.
+router.delete("*", requireRole("tenant_admin", "super_admin"));
 
 const exportQuerySchema = z.object({ search: z.string().trim().optional() });
 

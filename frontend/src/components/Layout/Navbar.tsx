@@ -17,21 +17,21 @@ export function Navbar() {
   };
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 bg-white/[0.02] px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-black/10 bg-black/[0.02] px-6">
       <div className="text-sm font-medium text-aurora-text/60">{tenant ? tenant.name : "Platform Administration"}</div>
 
       <div className="flex items-center gap-3">
-        <button className="rounded-lg p-2 text-aurora-text/60 transition hover:bg-white/10 hover:text-aurora-text" aria-label="Notifications">
+        <button className="rounded-lg p-2 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text" aria-label="Notifications">
           <Bell size={18} />
         </button>
-        <button className="rounded-lg p-2 text-aurora-text/60 transition hover:bg-white/10 hover:text-aurora-text" aria-label="Help">
+        <button className="rounded-lg p-2 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text" aria-label="Help">
           <HelpCircle size={18} />
         </button>
 
         <div className="relative">
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-white/10"
+            className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-black/10"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aurora-gradient text-xs font-bold">
               {initials(user?.firstName, user?.lastName)}
@@ -44,7 +44,7 @@ export function Navbar() {
             <div className="glass-card animate-fade-in absolute right-0 top-12 w-48 overflow-hidden !p-1">
               <button
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-aurora-error transition hover:bg-white/10"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-aurora-error transition hover:bg-black/10"
               >
                 <LogOut size={16} />
                 Sign out

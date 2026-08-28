@@ -24,7 +24,8 @@
 }
 
 .aurora-button--ghost {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f172a;
   box-shadow: none;
 }
 
@@ -47,5 +48,6 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.5);
 }

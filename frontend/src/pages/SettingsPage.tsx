@@ -68,8 +68,8 @@ export default function SettingsPage() {
         </div>
         <p className="text-sm text-aurora-text/60">
           SMTP credentials for welcome emails and reminders are configured via backend environment variables
-          (<code className="rounded bg-white/10 px-1.5 py-0.5">SMTP_HOST</code>, <code className="rounded bg-white/10 px-1.5 py-0.5">SMTP_USER</code>, etc. — see
-          <code className="rounded bg-white/10 px-1.5 py-0.5"> backend/.env.example</code>). No email provider is wired up yet in this build.
+          (<code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_HOST</code>, <code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_USER</code>, etc. — see
+          <code className="rounded bg-black/10 px-1.5 py-0.5"> backend/.env.example</code>). No email provider is wired up yet in this build.
         </p>
       </GlassCard>
 
@@ -79,9 +79,9 @@ export default function SettingsPage() {
           <h3>Stripe API keys</h3>
         </div>
         <p className="text-sm text-aurora-text/60">
-          Test-mode keys are read from <code className="rounded bg-white/10 px-1.5 py-0.5">STRIPE_SECRET_KEY</code> and{" "}
-          <code className="rounded bg-white/10 px-1.5 py-0.5">STRIPE_WEBHOOK_SECRET</code> on the backend. Checkout sessions are created via{" "}
-          <code className="rounded bg-white/10 px-1.5 py-0.5">POST /api/billing/checkout-session</code>.
+          Test-mode keys are read from <code className="rounded bg-black/10 px-1.5 py-0.5">STRIPE_SECRET_KEY</code> and{" "}
+          <code className="rounded bg-black/10 px-1.5 py-0.5">STRIPE_WEBHOOK_SECRET</code> on the backend. Checkout sessions are created via{" "}
+          <code className="rounded bg-black/10 px-1.5 py-0.5">POST /api/billing/checkout-session</code>.
         </p>
       </GlassCard>
 

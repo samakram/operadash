@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import * as patientService from "@/services/patient.service";
-import { authenticate } from "@/middleware/auth";
+import { authenticate, requireRole } from "@/middleware/auth";
 import { resolveTenant } from "@/middleware/tenantIsolation";
 import { requireModule } from "@/middleware/moduleGuard";
 import { paginationSchema } from "@/utils/validators";
@@ -10,6 +10,8 @@ import { recordAudit } from "@/utils/audit";
 
 const router = Router();
 router.use(authenticate, resolveTenant, requireModule("patient"));
+// Staff can read/create/update within the module; deleting is admin-only.
+router.delete("*", requireRole("tenant_admin", "super_admin"));
 
 // ============================================================
 // Shared zod helpers

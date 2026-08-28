@@ -66,7 +66,7 @@ export default function ModulesPage() {
                 <span className="aurora-badge border-aurora-success/40 text-aurora-success">Active</span>
               </div>
               <p className="text-sm text-aurora-text/60">{module.description}</p>
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm text-aurora-text/50">
+              <div className="flex items-center justify-between border-t border-black/10 pt-3 text-sm text-aurora-text/50">
                 <span>{module.tenantsUsing} tenant{module.tenantsUsing === 1 ? "" : "s"} using</span>
                 <span>Updated {formatDate(module.createdAt)}</span>
               </div>

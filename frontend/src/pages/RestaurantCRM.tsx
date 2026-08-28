@@ -201,7 +201,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={cn("aurora-badge", STATUS_COLORS[status] ?? "border-white/20 text-aurora-text/70")}>{titleCase(status)}</span>
+    <span className={cn("aurora-badge", STATUS_COLORS[status] ?? "border-black/20 text-aurora-text/70")}>{titleCase(status)}</span>
   );
 }
 
@@ -286,9 +286,9 @@ function DashboardTab({ refreshSignal }: { refreshSignal: number }) {
           ) : (
             <ul className="flex flex-col gap-2">
               {data.popularItemsToday.map((item, idx) => (
-                <li key={item.menuItemId} className="flex items-center justify-between border-b border-white/5 pb-2 text-sm last:border-0 last:pb-0">
+                <li key={item.menuItemId} className="flex items-center justify-between border-b border-black/5 pb-2 text-sm last:border-0 last:pb-0">
                   <span className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs">{idx + 1}</span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/10 text-xs">{idx + 1}</span>
                     {item.name}
                   </span>
                   <span className="text-aurora-text/60">
@@ -304,7 +304,7 @@ function DashboardTab({ refreshSignal }: { refreshSignal: number }) {
           <h3 className="mb-3">Tables Status</h3>
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(data.tablesStatusSummary).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-2">
+              <div key={status} className="flex items-center justify-between rounded-xl border border-black/10 px-3 py-2">
                 <StatusBadge status={status} />
                 <span className="font-semibold">{count}</span>
               </div>
@@ -479,7 +479,7 @@ function NewOrderModal({ open, onClose, onCreated }: { open: boolean; onClose: (
           </div>
 
           {cart.length > 0 && (
-            <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
+            <div className="flex flex-col gap-2 border-t border-black/10 pt-3">
               {cart.map((line) => (
                 <div key={line.menuItemId} className="flex items-center justify-between text-sm">
                   <span>
@@ -498,7 +498,7 @@ function NewOrderModal({ open, onClose, onCreated }: { open: boolean; onClose: (
                   </span>
                 </div>
               ))}
-              <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm font-semibold">
+              <div className="flex items-center justify-between border-t border-black/10 pt-2 text-sm font-semibold">
                 <span>Subtotal</span>
                 <span>{formatCurrency(subtotal)}</span>
               </div>
@@ -727,7 +727,7 @@ function InventoryTab() {
         rowActions={(row) => (
           <button
             onClick={() => setAdjustItem(row)}
-            className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-white/10 hover:text-aurora-cyan"
+            className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-cyan"
             aria-label="Adjust stock"
           >
             <PackagePlus size={16} />
@@ -843,7 +843,7 @@ const TABS = [
 
 function RestaurantTabBar() {
   return (
-    <nav className="flex flex-wrap gap-1 border-b border-white/10 pb-1">
+    <nav className="flex flex-wrap gap-1 border-b border-black/10 pb-1">
       {TABS.map((tab) => (
         <NavLink
           key={tab.to}
@@ -851,8 +851,8 @@ function RestaurantTabBar() {
           className={({ isActive }) =>
             cn(
               "rounded-t-lg px-4 py-2 text-sm font-medium text-aurora-text/60 transition",
-              "hover:bg-white/5 hover:text-aurora-text",
-              isActive && "bg-white/10 text-aurora-text shadow-glass",
+              "hover:bg-black/5 hover:text-aurora-text",
+              isActive && "bg-black/10 text-aurora-text shadow-glass",
             )
           }
         >

@@ -49,7 +49,7 @@ export function Sidebar() {
         ];
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col gap-1 border-r border-white/10 bg-white/[0.03] px-3 py-6 md:flex">
+    <aside className="hidden w-64 shrink-0 flex-col gap-1 border-r border-black/10 bg-black/[0.03] px-3 py-6 md:flex">
       <div className="mb-6 flex items-center gap-2 px-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-aurora-gradient font-bold">O</div>
         <span className="text-lg font-bold tracking-tight">OperaDash</span>
@@ -63,8 +63,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-aurora-text/70 transition duration-300",
-                "hover:bg-white/10 hover:text-aurora-text",
-                isActive && "bg-white/10 text-aurora-text shadow-glass",
+                "hover:bg-black/10 hover:text-aurora-text",
+                isActive && "bg-black/10 text-aurora-text shadow-glass",
               )
             }
           >

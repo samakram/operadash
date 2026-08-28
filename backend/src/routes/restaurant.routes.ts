@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import * as restaurantService from "@/services/restaurant.service";
-import { authenticate } from "@/middleware/auth";
+import { authenticate, requireRole } from "@/middleware/auth";
 import { resolveTenant } from "@/middleware/tenantIsolation";
 import { requireModule } from "@/middleware/moduleGuard";
 import { paginationSchema } from "@/utils/validators";
@@ -11,6 +11,8 @@ import { AppError } from "@/utils/errors";
 
 const router = Router();
 router.use(authenticate, resolveTenant, requireModule("restaurant"));
+// Staff can read/create/update within the module; deleting is admin-only.
+router.delete("*", requireRole("tenant_admin", "super_admin"));
 
 function toCsvRows(rows: unknown[]): Record<string, unknown>[] {
   return JSON.parse(JSON.stringify(rows)) as Record<string, unknown>[];

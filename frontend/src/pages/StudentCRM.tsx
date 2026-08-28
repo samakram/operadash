@@ -135,9 +135,9 @@ const statusBadgeClass: Record<string, string> = {
   paid: "border-aurora-success/40 text-aurora-success",
   completed: "border-aurora-cyan/40 text-aurora-cyan",
   graduated: "border-aurora-cyan/40 text-aurora-cyan",
-  inactive: "border-white/20 text-aurora-text/60",
-  dropped: "border-white/20 text-aurora-text/60",
-  cancelled: "border-white/20 text-aurora-text/60",
+  inactive: "border-black/20 text-aurora-text/60",
+  dropped: "border-black/20 text-aurora-text/60",
+  cancelled: "border-black/20 text-aurora-text/60",
   pending: "border-aurora-cyan/40 text-aurora-cyan",
   partial: "border-yellow-400/40 text-yellow-300",
   suspended: "border-aurora-error/40 text-aurora-error",
@@ -145,7 +145,7 @@ const statusBadgeClass: Record<string, string> = {
 };
 
 function StatusBadge({ value }: { value: string }) {
-  return <span className={cn("aurora-badge", statusBadgeClass[value] ?? "border-white/20 text-aurora-text/60")}>{titleCase(value)}</span>;
+  return <span className={cn("aurora-badge", statusBadgeClass[value] ?? "border-black/20 text-aurora-text/60")}>{titleCase(value)}</span>;
 }
 
 // ============================================================
@@ -164,7 +164,7 @@ const TABS = [
 
 function TabBar() {
   return (
-    <div className="flex flex-wrap gap-1 border-b border-white/10 pb-1">
+    <div className="flex flex-wrap gap-1 border-b border-black/10 pb-1">
       {TABS.map((tab) => (
         <NavLink
           key={tab.to}
@@ -173,8 +173,8 @@ function TabBar() {
           className={({ isActive }) =>
             cn(
               "rounded-t-lg px-4 py-2 text-sm font-medium text-aurora-text/60 transition",
-              "hover:bg-white/5 hover:text-aurora-text",
-              isActive && "bg-white/10 text-aurora-text shadow-glass",
+              "hover:bg-black/5 hover:text-aurora-text",
+              isActive && "bg-black/10 text-aurora-text shadow-glass",
             )
           }
         >
@@ -246,7 +246,7 @@ function DashboardTab() {
           ) : (
             <ul className="flex flex-col gap-2">
               {data.lowAttendanceStudents.map((s) => (
-                <li key={s.studentId} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm">
+                <li key={s.studentId} className="flex items-center justify-between rounded-lg bg-black/5 px-3 py-2 text-sm">
                   <span>
                     {s.firstName} {s.lastName}
                   </span>
@@ -264,7 +264,7 @@ function DashboardTab() {
           ) : (
             <ul className="flex flex-col gap-2">
               {data.recentEnrollments.map((e) => (
-                <li key={e.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm">
+                <li key={e.id} className="flex items-center justify-between rounded-lg bg-black/5 px-3 py-2 text-sm">
                   <span>
                     {e.student.firstName} {e.student.lastName} <span className="text-aurora-text/50">→</span> {e.class.courseName}
                   </span>
@@ -283,7 +283,7 @@ function DashboardTab() {
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {data.upcomingClasses.map((c) => (
-              <li key={c.id} className="rounded-lg bg-white/5 px-3 py-2 text-sm">
+              <li key={c.id} className="rounded-lg bg-black/5 px-3 py-2 text-sm">
                 <p className="font-medium">{c.courseName}</p>
                 <p className="text-xs text-aurora-text/50">
                   {c.instructor.firstName} {c.instructor.lastName} · {c.enrolledCount}/{c.capacity} enrolled
@@ -467,7 +467,7 @@ function ClassesTab() {
             onClick={() => setSection(s)}
             className={cn(
               "rounded-lg px-3 py-1.5 text-sm font-medium transition",
-              section === s ? "bg-aurora-gradient text-white" : "bg-white/5 text-aurora-text/60 hover:bg-white/10",
+              section === s ? "bg-aurora-gradient text-white" : "bg-black/5 text-aurora-text/60 hover:bg-black/10",
             )}
           >
             {titleCase(s)}
@@ -567,7 +567,7 @@ function AttendanceMarking() {
       ) : (
         <div className="flex flex-col gap-2">
           {roster.map((r) => (
-            <div key={r.studentId} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
+            <div key={r.studentId} className="flex items-center justify-between rounded-lg bg-black/5 px-3 py-2">
               <span className="text-sm">{r.name}</span>
               <button
                 onClick={() => togglePresent(r.studentId)}

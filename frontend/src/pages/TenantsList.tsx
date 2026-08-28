@@ -163,7 +163,7 @@ export default function TenantsList() {
 
               <p className="text-sm text-aurora-text/60">Monthly revenue: {formatCurrency(tenant.monthlyRevenue)}</p>
 
-              <div className="mt-auto flex items-center gap-2 border-t border-white/10 pt-4">
+              <div className="mt-auto flex items-center gap-2 border-t border-black/10 pt-4">
                 <Link to={`/admin/tenants/${tenant.id}`} className="flex-1">
                   <AuroraButton variant="ghost" size="sm" icon={<ExternalLink size={14} />} className="w-full">
                     Manage
@@ -261,7 +261,7 @@ export default function TenantsList() {
                       type="checkbox"
                       checked={form.enabledModules.includes(opt.value)}
                       onChange={() => toggleModule(opt.value)}
-                      className="h-4 w-4 rounded border-white/30 bg-white/10"
+                      className="h-4 w-4 rounded border-black/30 bg-black/10"
                     />
                     {opt.label}
                   </label>

@@ -41,18 +41,18 @@ export function Modal({ open, onClose, title, children, footer, size = "md" }: M
         className={cn("glass-card w-full animate-slide-in max-h-[90vh] overflow-y-auto", sizeMap[size])}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
           <h3>{title}</h3>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-white/10 hover:text-aurora-text"
+            className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text"
             aria-label="Close"
           >
             <X size={20} />
           </button>
         </div>
         <div className="px-6 py-5">{children}</div>
-        {footer && <div className="flex justify-end gap-3 border-t border-white/10 px-6 py-4">{footer}</div>}
+        {footer && <div className="flex justify-end gap-3 border-t border-black/10 px-6 py-4">{footer}</div>}
       </div>
     </div>,
     document.body,

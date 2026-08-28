@@ -122,13 +122,13 @@ export default function TenantDetail() {
         <GlassCard className="flex flex-col gap-3">
           <h3>Enabled modules</h3>
           {ALL_MODULES.map((m) => (
-            <label key={m} className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-white/5">
+            <label key={m} className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-black/5">
               {titleCase(m)}
               <input
                 type="checkbox"
                 checked={tenant.enabledModules.includes(m)}
                 onChange={() => toggleModule(m)}
-                className="h-4 w-4 rounded border-white/30 bg-white/10"
+                className="h-4 w-4 rounded border-black/30 bg-black/10"
               />
             </label>
           ))}
@@ -144,10 +144,10 @@ export default function TenantDetail() {
       </div>
 
       <GlassCard padding="none">
-        <div className="border-b border-white/10 px-6 py-4">
+        <div className="border-b border-black/10 px-6 py-4">
           <h3>Users</h3>
         </div>
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-black/5">
           {tenant.users.map((u) => (
             <div key={u.id} className="flex items-center justify-between px-6 py-3">
               <div className="flex items-center gap-3">
@@ -161,7 +161,7 @@ export default function TenantDetail() {
                   <p className="text-xs text-aurora-text/50">{u.email}</p>
                 </div>
               </div>
-              <span className="aurora-badge border-white/20">{titleCase(u.role)}</span>
+              <span className="aurora-badge border-black/20">{titleCase(u.role)}</span>
             </div>
           ))}
         </div>

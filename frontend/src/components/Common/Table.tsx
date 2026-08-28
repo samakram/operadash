@@ -39,7 +39,7 @@ export function Table<T extends Record<string, unknown>>({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-aurora-text/50">
+            <tr className="border-b border-black/10 text-xs uppercase tracking-wide text-aurora-text/50">
               {columns.map((col) => (
                 <th key={col.key} className={cn("px-4 py-3 font-medium", col.className)}>
                   {col.sortable && onSort ? (
@@ -78,7 +78,7 @@ export function Table<T extends Record<string, unknown>>({
               </tr>
             ) : (
               data.map((row) => (
-                <tr key={String(row[keyField])} className="border-b border-white/5 transition hover:bg-white/5">
+                <tr key={String(row[keyField])} className="border-b border-black/5 transition hover:bg-black/5">
                   {columns.map((col) => (
                     <td key={col.key} className={cn("px-4 py-3", col.className)}>
                       {col.render ? col.render(row) : String(row[col.key] ?? "—")}

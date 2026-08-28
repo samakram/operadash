@@ -7,6 +7,7 @@ import { GlassInput, GlassSelect, GlassTextarea } from "@/components/Common/Glas
 import { Modal } from "@/components/Common/Modal";
 import { Table, type Column } from "@/components/Common/Table";
 import { useToast } from "@/components/Common/Toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export type FieldType = "text" | "email" | "number" | "date" | "datetime-local" | "time" | "select" | "textarea" | "checkbox" | "tags";
 
@@ -80,11 +81,16 @@ export function EntityCrudPage<T extends Record<string, unknown>>({
   rowActions,
   canCreate = true,
   canEdit = true,
-  canDelete = true,
+  canDelete,
   canExport = true,
   onBeforeSubmit,
 }: EntityCrudPageProps<T>) {
   const { show } = useToast();
+  const { user } = useAuth();
+  // Backend already enforces this (staff can't call DELETE on module routes);
+  // default the button off for staff too so it doesn't dangle as a 403 trap.
+  // An explicit canDelete prop always wins.
+  const effectiveCanDelete = canDelete ?? user?.role !== "staff";
   const [rows, setRows] = useState<T[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -266,12 +272,12 @@ export function EntityCrudPage<T extends Record<string, unknown>>({
           <div className="flex justify-end gap-1">
             {rowActions?.(row)}
             {canEdit && (
-              <button onClick={() => openEdit(row)} className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-white/10 hover:text-aurora-cyan" aria-label="Edit">
+              <button onClick={() => openEdit(row)} className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-cyan" aria-label="Edit">
                 <Pencil size={16} />
               </button>
             )}
-            {canDelete && (
-              <button onClick={() => setDeletingRow(row)} className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-white/10 hover:text-aurora-error" aria-label="Delete">
+            {effectiveCanDelete && (
+              <button onClick={() => setDeletingRow(row)} className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-error" aria-label="Delete">
                 <Trash2 size={16} />
               </button>
             )}
@@ -287,7 +293,7 @@ export function EntityCrudPage<T extends Record<string, unknown>>({
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="rounded-lg p-1.5 hover:bg-white/10 disabled:opacity-30"
+            className="rounded-lg p-1.5 hover:bg-black/10 disabled:opacity-30"
           >
             <ChevronLeft size={16} />
           </button>
@@ -297,7 +303,7 @@ export function EntityCrudPage<T extends Record<string, unknown>>({
           <button
             disabled={page >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="rounded-lg p-1.5 hover:bg-white/10 disabled:opacity-30"
+            className="rounded-lg p-1.5 hover:bg-black/10 disabled:opacity-30"
           >
             <ChevronRight size={16} />
           </button>
@@ -346,7 +352,7 @@ export function EntityCrudPage<T extends Record<string, unknown>>({
                     type="checkbox"
                     checked={Boolean(formValues[field.name])}
                     onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.checked }))}
-                    className="h-4 w-4 rounded border-white/30 bg-white/10"
+                    className="h-4 w-4 rounded border-black/30 bg-black/10"
                   />
                   {field.label}
                 </label>

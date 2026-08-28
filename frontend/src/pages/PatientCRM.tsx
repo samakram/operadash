@@ -33,7 +33,7 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
   normal: "border-aurora-success/40 text-aurora-success",
   abnormal: "border-aurora-warning/40 text-aurora-warning",
   critical: "border-aurora-error/40 text-aurora-error",
-  pending: "border-white/20 text-aurora-text/70",
+  pending: "border-black/20 text-aurora-text/70",
   submitted: "border-aurora-cyan/40 text-aurora-cyan",
   approved: "border-aurora-success/40 text-aurora-success",
   denied: "border-aurora-error/40 text-aurora-error",
@@ -41,7 +41,7 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
 
 function StatusBadge({ value }: { value: string | null | undefined }) {
   if (!value) return <span className="text-aurora-text/40">—</span>;
-  return <span className={cn("aurora-badge", STATUS_BADGE_STYLES[value] ?? "border-white/20 text-aurora-text/70")}>{titleCase(value)}</span>;
+  return <span className={cn("aurora-badge", STATUS_BADGE_STYLES[value] ?? "border-black/20 text-aurora-text/70")}>{titleCase(value)}</span>;
 }
 
 function personName(row: unknown): string {
@@ -136,10 +136,10 @@ function DashboardTab() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <GlassCard padding="none">
-          <div className="border-b border-white/10 px-6 py-4">
+          <div className="border-b border-black/10 px-6 py-4">
             <h3>Upcoming appointments</h3>
           </div>
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-black/5">
             {data.upcomingAppointments.length === 0 ? (
               <p className="px-6 py-8 text-center text-sm text-aurora-text/50">No scheduled appointments coming up.</p>
             ) : (
@@ -159,10 +159,10 @@ function DashboardTab() {
         </GlassCard>
 
         <GlassCard padding="none">
-          <div className="border-b border-white/10 px-6 py-4">
+          <div className="border-b border-black/10 px-6 py-4">
             <h3>Recent visits</h3>
           </div>
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-black/5">
             {data.recentVisits.length === 0 ? (
               <p className="px-6 py-8 text-center text-sm text-aurora-text/50">No medical records yet.</p>
             ) : (
@@ -673,7 +673,7 @@ export default function PatientCRM() {
         <p className="mt-1 text-sm text-aurora-text/60">Appointments, records, prescriptions, and billing</p>
       </div>
 
-      <nav className="flex flex-wrap gap-1 border-b border-white/10 pb-2">
+      <nav className="flex flex-wrap gap-1 border-b border-black/10 pb-2">
         {TABS.map((tab) => (
           <NavLink
             key={tab.label}
@@ -682,8 +682,8 @@ export default function PatientCRM() {
             className={({ isActive }) =>
               cn(
                 "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-aurora-text/60 transition duration-300",
-                "hover:bg-white/10 hover:text-aurora-text",
-                isActive && "bg-white/10 text-aurora-text shadow-glass",
+                "hover:bg-black/10 hover:text-aurora-text",
+                isActive && "bg-black/10 text-aurora-text shadow-glass",
               )
             }
           >

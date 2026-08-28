@@ -69,7 +69,7 @@ export default function Login() {
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-white/30 bg-white/10"
+              className="h-4 w-4 rounded border-black/30 bg-black/10"
             />
             Remember me
           </label>
@@ -81,11 +81,11 @@ export default function Login() {
           </AuroraButton>
         </form>
 
-        <div className="mt-6 flex items-center justify-between text-xs text-aurora-text/40">
-          <span className="inline-flex items-center gap-1">
+        <div className="mt-6 flex flex-col items-center gap-2 text-xs text-aurora-text/40 sm:flex-row sm:justify-between">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <Mail size={12} /> Need access? Contact your admin
           </span>
-          <button type="button" className="inline-flex items-center gap-1 hover:text-aurora-text/70">
+          <button type="button" className="inline-flex items-center gap-1 whitespace-nowrap hover:text-aurora-text/70">
             <Lock size={12} /> Forgot password?
           </button>
         </div>

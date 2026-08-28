@@ -12,8 +12,8 @@ export default {
           success: "#10b981",
           warning: "#f97316",
           error: "#ec4899",
-          bg: "#0f172a",
-          text: "#f8fafc",
+          bg: "#f4f5fb",
+          text: "#0f172a",
         },
       },
       fontFamily: {
@@ -23,12 +23,12 @@ export default {
         glass: "12px",
       },
       boxShadow: {
-        glass: "0 8px 32px 0 rgba(15, 23, 42, 0.37)",
-        "glass-hover": "0 12px 40px 0 rgba(121, 40, 202, 0.35)",
+        glass: "0 8px 32px 0 rgba(15, 23, 42, 0.10)",
+        "glass-hover": "0 12px 40px 0 rgba(121, 40, 202, 0.20)",
       },
       backgroundImage: {
         "aurora-gradient": "linear-gradient(135deg, #7928ca 0%, #0ea5e9 50%, #06b6d4 100%)",
-        "aurora-radial": "radial-gradient(circle at top left, rgba(121,40,202,0.25), transparent 50%), radial-gradient(circle at bottom right, rgba(14,165,233,0.25), transparent 50%)",
+        "aurora-radial": "radial-gradient(circle at top left, rgba(121,40,202,0.12), transparent 50%), radial-gradient(circle at bottom right, rgba(14,165,233,0.12), transparent 50%)",
       },
       transitionDuration: {
         DEFAULT: "300ms",
