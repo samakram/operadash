@@ -13,6 +13,8 @@ All auth state lives in **httpOnly cookies** — the frontend never touches a ra
 | `/auth/logout` | POST | Clears both cookies |
 | `/auth/me` | GET | Returns the current `{ user }` (requires the access cookie) |
 | `/auth/change-password` | POST | `{ currentPassword, newPassword }` |
+| `/auth/forgot-password` | POST | `{ email }` → always 202 with an identical generic message, regardless of whether the account exists |
+| `/auth/reset-password` | POST | `{ token, newPassword }` — token is single-use, expires in 1h, emailed as a link by `/forgot-password` |
 
 The frontend axios instance (`frontend/src/lib/api.ts`) auto-retries a request once through `/auth/refresh` on a 401, then fires a `operadash:session-expired` window event if that also fails (caught by `AuthContext`, which logs the user out).
 
@@ -53,7 +55,7 @@ For each entity in a module (e.g. `hotel_guests`, `student_classes`, `patient_ap
 - `GET /<module>/<entity>/export` — CSV download of the current filtered list
 - `POST /<module>/<entity>` — create
 - `PATCH /<module>/<entity>/:id` — update
-- `DELETE /<module>/<entity>/:id` — delete
+- `DELETE /<module>/<entity>/:id` — delete (`tenant_admin`/`super_admin` only — `staff` gets 403)
 
 Plus one aggregate `GET /<module>/dashboard` per module returning the real KPI numbers shown on that module's Dashboard tab.
 

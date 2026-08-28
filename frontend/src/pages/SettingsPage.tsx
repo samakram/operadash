@@ -67,9 +67,13 @@ export default function SettingsPage() {
           <h3>Email configuration</h3>
         </div>
         <p className="text-sm text-aurora-text/60">
-          SMTP credentials for welcome emails and reminders are configured via backend environment variables
-          (<code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_HOST</code>, <code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_USER</code>, etc. — see
-          <code className="rounded bg-black/10 px-1.5 py-0.5"> backend/.env.example</code>). No email provider is wired up yet in this build.
+          Welcome emails (on tenant/staff creation) and password-reset links are sent via SMTP, configured with backend
+          environment variables (<code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_HOST</code>,{" "}
+          <code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_USER</code>, etc. — see{" "}
+          <code className="rounded bg-black/10 px-1.5 py-0.5">backend/.env.example</code>). Until{" "}
+          <code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_HOST</code> is set, emails are logged instead of sent, so
+          nothing breaks without a mail provider configured. Appointment/tuition reminder emails from the original spec aren't
+          scheduled anywhere yet — only welcome and password-reset are wired up.
         </p>
       </GlassCard>
 

@@ -3,6 +3,8 @@ import type { ModuleName, PlanTier, Prisma } from "@prisma/client";
 import { prisma } from "@/database/db";
 import { AppError } from "@/utils/errors";
 import { hashPassword, sanitizeUser } from "@/services/auth.service";
+import { sendWelcomeEmail } from "@/services/email.service";
+import { logger } from "@/utils/logger";
 import { buildPaginatedResult, type PaginationQuery } from "@/utils/validators";
 
 export interface CreateTenantInput {
@@ -53,6 +55,15 @@ export async function createTenant(input: CreateTenantInput) {
 
     return { tenant, admin };
   });
+
+  try {
+    await sendWelcomeEmail(result.admin.email, input.adminFirstName, input.name, tempPassword);
+  } catch (err) {
+    // The tenant/admin were already created successfully — an email
+    // delivery failure shouldn't roll that back or fail this request; the
+    // temp password is also returned in the response below as a fallback.
+    logger.error({ err, tenantId: result.tenant.id }, "Failed to send tenant welcome email");
+  }
 
   return { tenant: result.tenant, admin: sanitizeUser(result.admin), tempPassword };
 }

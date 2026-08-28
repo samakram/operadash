@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { GlassInput } from "@/components/Common/GlassInput";
@@ -77,9 +77,9 @@ export default function Login() {
         <div className="mt-5 flex items-center justify-center gap-3 text-[11px] text-aurora-text/35">
           <span>Need access? Contact your admin</span>
           <span className="text-aurora-text/20">&middot;</span>
-          <button type="button" className="hover:text-aurora-text/60">
+          <Link to="/forgot-password" className="hover:text-aurora-text/60">
             Forgot password?
-          </button>
+          </Link>
         </div>
       </GlassCard>
     </div>

@@ -3,6 +3,8 @@ import { prisma } from "@/database/db";
 import { AppError } from "@/utils/errors";
 import { hashPassword, sanitizeUser } from "@/services/auth.service";
 import { generateTempPassword } from "@/services/tenant.service";
+import { sendWelcomeEmail } from "@/services/email.service";
+import { logger } from "@/utils/logger";
 import { buildPaginatedResult, type PaginationQuery } from "@/utils/validators";
 
 export interface CreateUserInput {
@@ -32,6 +34,15 @@ export async function createUser(input: CreateUserInput) {
       tenantId: input.tenantId,
     },
   });
+
+  try {
+    const tenantName = user.tenantId
+      ? ((await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { name: true } }))?.name ?? "OperaDash")
+      : "OperaDash";
+    await sendWelcomeEmail(user.email, input.firstName, tenantName, tempPassword);
+  } catch (err) {
+    logger.error({ err, userId: user.id }, "Failed to send user welcome email");
+  }
 
   return { user: sanitizeUser(user), tempPassword };
 }

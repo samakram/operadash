@@ -1,9 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import bcrypt from "bcryptjs";
-import type { User } from "@prisma/client";
+import crypto from "node:crypto";
+import type { PasswordResetToken, User } from "@prisma/client";
 import { prismaMock } from "@/test/prismaMock";
 import * as authService from "@/services/auth.service";
+import * as emailService from "@/services/email.service";
 import { AppError } from "@/utils/errors";
+
+vi.mock("@/services/email.service", () => ({
+  sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+  sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+}));
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -23,6 +30,10 @@ function makeUser(overrides: Partial<User> = {}): User {
 }
 
 describe("auth.service", () => {
+  beforeEach(() => {
+    vi.mocked(emailService.sendPasswordResetEmail).mockClear();
+  });
+
   describe("sanitizeUser", () => {
     it("strips the password field and keeps everything else", () => {
       const user = makeUser();
@@ -113,6 +124,94 @@ describe("auth.service", () => {
       expect(updateCall.where).toEqual({ id: "user-1" });
       expect(updateCall.data).toHaveProperty("password");
       expect(updateCall.data.password).not.toBe("brand-new-password-123");
+    });
+  });
+
+  describe("requestPasswordReset", () => {
+    const buildResetUrl = (token: string) => `https://app.example.com/reset-password?token=${token}`;
+
+    it("does nothing (no token created, no email sent) for an unknown email", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      await authService.requestPasswordReset("nobody@example.com", buildResetUrl);
+
+      expect(prismaMock.passwordResetToken.create).not.toHaveBeenCalled();
+      expect(emailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+
+    it("does nothing for a disabled account", async () => {
+      prismaMock.user.findUnique.mockResolvedValue(makeUser({ active: false }));
+
+      await authService.requestPasswordReset("admin@operadash.com", buildResetUrl);
+
+      expect(prismaMock.passwordResetToken.create).not.toHaveBeenCalled();
+    });
+
+    it("creates a hashed token (never the raw token) and emails a link containing the raw token", async () => {
+      const user = makeUser();
+      prismaMock.user.findUnique.mockResolvedValue(user);
+      prismaMock.passwordResetToken.create.mockResolvedValue({} as PasswordResetToken);
+
+      await authService.requestPasswordReset(user.email, buildResetUrl);
+
+      expect(prismaMock.passwordResetToken.create).toHaveBeenCalledTimes(1);
+      const createCall = prismaMock.passwordResetToken.create.mock.calls[0][0];
+      expect(createCall.data.userId).toBe(user.id);
+      expect(createCall.data.tokenHash).toMatch(/^[0-9a-f]{64}$/); // sha256 hex digest
+
+      expect(emailService.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+      const [, resetUrl] = vi.mocked(emailService.sendPasswordResetEmail).mock.calls[0];
+      const rawToken = new URL(resetUrl).searchParams.get("token")!;
+      expect(rawToken).not.toBe(createCall.data.tokenHash);
+      expect(crypto.createHash("sha256").update(rawToken).digest("hex")).toBe(createCall.data.tokenHash);
+    });
+  });
+
+  describe("resetPassword", () => {
+    function makeResetToken(overrides: Partial<PasswordResetToken> = {}): PasswordResetToken {
+      return {
+        id: "token-1",
+        userId: "user-1",
+        tokenHash: crypto.createHash("sha256").update("valid-raw-token").digest("hex"),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        usedAt: null,
+        createdAt: new Date(),
+        ...overrides,
+      };
+    }
+
+    it("rejects a token that doesn't exist", async () => {
+      prismaMock.passwordResetToken.findUnique.mockResolvedValue(null);
+
+      await expect(authService.resetPassword("bogus-token", "new-password-123")).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it("rejects an expired token", async () => {
+      prismaMock.passwordResetToken.findUnique.mockResolvedValue(makeResetToken({ expiresAt: new Date(Date.now() - 1000) }));
+
+      await expect(authService.resetPassword("valid-raw-token", "new-password-123")).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it("rejects an already-used token", async () => {
+      prismaMock.passwordResetToken.findUnique.mockResolvedValue(makeResetToken({ usedAt: new Date() }));
+
+      await expect(authService.resetPassword("valid-raw-token", "new-password-123")).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it("updates the password and invalidates outstanding tokens for a valid token", async () => {
+      const token = makeResetToken();
+      prismaMock.passwordResetToken.findUnique.mockResolvedValue(token);
+      prismaMock.user.update.mockResolvedValue(makeUser());
+      prismaMock.passwordResetToken.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.$transaction.mockImplementation((ops: unknown) => Promise.all(ops as Promise<unknown>[]));
+
+      await authService.resetPassword("valid-raw-token", "brand-new-password-123");
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({ where: { id: token.userId }, data: { password: expect.any(String) } });
+      expect(prismaMock.passwordResetToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: token.userId, usedAt: null },
+        data: { usedAt: expect.any(Date) },
+      });
     });
   });
 });

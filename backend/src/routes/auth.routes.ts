@@ -82,4 +82,34 @@ router.post("/change-password", authenticate, authRateLimit, async (req, res, ne
   }
 });
 
+const forgotPasswordSchema = z.object({ email: z.string().email() });
+
+router.post("/forgot-password", authRateLimit, async (req, res, next) => {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    const frontendOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
+    await authService.requestPasswordReset(email, (token) => `${frontendOrigin}/reset-password?token=${token}`);
+    // Identical response whether or not the account exists — the account's
+    // existence must never be inferable from this endpoint's response.
+    res.status(202).json({ message: "If that email has an account, a reset link has been sent." });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+router.post("/reset-password", authRateLimit, async (req, res, next) => {
+  try {
+    const { token, newPassword } = resetPasswordSchema.parse(req.body);
+    await authService.resetPassword(token, newPassword);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

@@ -75,11 +75,11 @@ Frontend (`frontend/`): `npm run dev`, `build`, `preview`, `typecheck`, `lint`.
 
 ## Known gaps / follow-ups
 
-- **No migration history is committed yet** — see the setup note above; generate it against a real Postgres instance before deploying.
-- **Email is not wired up** — welcome emails, appointment reminders, and tuition reminders referenced in the original spec have no SMTP integration; `SettingsPage` documents where that would plug in.
+- **No migration history is committed yet** — see the setup note above; generate it against a real Postgres instance before deploying. This also means CI (`.github/workflows/ci.yml`) will fail on `prisma migrate deploy` until that first migration is committed.
+- **Email covers welcome + password-reset only** — appointment and tuition reminder emails referenced in the original spec aren't scheduled anywhere (there's no job scheduler in this build). SMTP is optional: without `SMTP_HOST` set, emails are logged instead of sent, so nothing breaks in local/dev. See `backend/src/services/email.service.ts`.
 - **Stripe covers checkout only** — `POST /api/billing/checkout-session` creates a subscription checkout session and a webhook updates the tenant's plan on completion; there's no billing-history UI.
-- **`npm audit`** flags moderate advisories in `esbuild`/`vite` (dev-server-only) and `react-router` (SSR/open-redirect edge cases not exercised by this SPA); fixing them means major-version bumps (Vite 8, React Router 7) that weren't tested against this codebase — evaluate before upgrading.
+- **`npm audit`** flags moderate advisories in `esbuild`/`vite` (dev-server-only, both apps) and `react-router` (SSR/open-redirect edge cases not exercised by this SPA); fixing them means major-version bumps (Vite 8, React Router 7, Vitest 4) that weren't tested against this codebase — evaluate before upgrading.
 - Frontend uses one consistent table+modal pattern per entity rather than the bespoke kanban/calendar/gradebook UIs in the original spec (see Architecture notes above) — the REST APIs underneath support building those later without backend changes.
-- **`staff` has the same module permissions as `tenant_admin`** within an enabled module (both pass `requireModule` identically) — the spec's "staff: assigned module features only" implies per-feature/per-staff-member permission grants, which isn't implemented. `feature_flags` in the schema is a plausible foundation for this later; today it's unused.
+- **`staff` can read/create/update within an enabled module but not delete** (delete is `tenant_admin`/`super_admin` only, enforced both server-side and in the UI) — finer-grained per-feature permissions beyond that (the spec's "staff: assigned module features only") aren't implemented. `feature_flags` in the schema is a plausible foundation for this later; today it's unused.
 - No account-lockout/CAPTCHA beyond IP-based rate limiting (`backend/src/middleware/rateLimit.ts`) on login — sufficient against casual brute-forcing, not against a distributed attempt.
-- No password-reset flow — the Login page's "Forgot password?" link is a placeholder.
+- **Queued, not built**: a drag-and-drop lead/opportunity pipeline (generic sales-pipeline stages) across all four verticals, requested but explicitly deferred — see memory note if resuming this project in a future session.

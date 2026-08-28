@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 import TenantsList from "@/pages/TenantsList";
 import TenantDetail from "@/pages/TenantDetail";
@@ -35,6 +37,8 @@ export default function App() {
         <ToastProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<RootRedirect />} />
 
             <Route

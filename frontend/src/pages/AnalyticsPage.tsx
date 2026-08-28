@@ -23,16 +23,19 @@ interface PlatformAnalytics {
   userGrowth: GrowthPoint[];
 }
 
-// Validated against the aurora dark surface (#0f172a) — see dataviz skill categorical check.
+// Validated against the aurora light surface (#f4f5fb) — see dataviz skill categorical check.
+// The 3:1-contrast WARN on 3 of these 4 is mitigated by the direct-label
+// legend rendered below the bar chart (never color alone).
 const MODULE_COLORS: Record<string, string> = {
-  hotel: "#3987e5",
-  student: "#d95926",
-  patient: "#199e70",
-  restaurant: "#c98500",
+  hotel: "#2a78d6",
+  student: "#eb6834",
+  patient: "#1baf7a",
+  restaurant: "#eda100",
 };
-const SEQUENTIAL_BLUE = "#3987e5";
+const SEQUENTIAL_BLUE = "#2a78d6";
 
-const chartTickStyle = { fill: "#c3c2b7", fontSize: 12 };
+const chartTickStyle = { fill: "#52514e", fontSize: 12 };
+const gridStroke = "rgba(15, 23, 42, 0.08)";
 
 function KpiCard({ icon: Icon, label, value, sub }: { icon: typeof DollarSign; label: string; value: string; sub?: string }) {
   return (
@@ -112,7 +115,7 @@ export default function AnalyticsPage() {
           <h3 className="mb-4">Tenant Growth (30 days)</h3>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={data.tenantGrowth} margin={{ left: -20 }}>
-              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
+              <CartesianGrid vertical={false} stroke={gridStroke} />
               <XAxis dataKey="date" tickFormatter={(d: string) => formatDate(d)} tick={chartTickStyle} axisLine={false} tickLine={false} minTickGap={40} />
               <YAxis tick={chartTickStyle} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
               <Tooltip content={<ChartTooltip />} />
@@ -125,7 +128,7 @@ export default function AnalyticsPage() {
           <h3 className="mb-4">User Growth (30 days)</h3>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={data.userGrowth} margin={{ left: -20 }}>
-              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
+              <CartesianGrid vertical={false} stroke={gridStroke} />
               <XAxis dataKey="date" tickFormatter={(d: string) => formatDate(d)} tick={chartTickStyle} axisLine={false} tickLine={false} minTickGap={40} />
               <YAxis tick={chartTickStyle} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
               <Tooltip content={<ChartTooltip />} />
@@ -139,10 +142,10 @@ export default function AnalyticsPage() {
         <h3 className="mb-4">Module Usage</h3>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={moduleData} margin={{ left: -20 }}>
-            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
+            <CartesianGrid vertical={false} stroke={gridStroke} />
             <XAxis dataKey="name" tick={chartTickStyle} axisLine={false} tickLine={false} />
             <YAxis tick={chartTickStyle} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
-            <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
+            <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(15,23,42,0.04)" }} />
             <Bar dataKey="tenants" name="Tenants using" radius={[4, 4, 0, 0]}>
               {moduleData.map((entry) => (
                 <Cell key={entry.name} fill={entry.color} />
