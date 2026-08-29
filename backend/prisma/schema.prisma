@@ -366,6 +366,20 @@ model SupportMessage {
   @@map("support_messages")
 }
 
+// Lets a tenant rename a pipeline's 5 fixed stages (e.g. "New" -> "Inquiry")
+// without forking LeadStage per tenant — a missing row for a given stage just
+// means "use the default label".
+model PipelineStageLabel {
+  id       String     @id @default(uuid()) @db.Uuid
+  tenantId String     @map("tenant_id") @db.Uuid
+  module   ModuleName
+  stage    LeadStage
+  label    String     @db.VarChar(100)
+
+  @@unique([tenantId, module, stage])
+  @@map("pipeline_stage_labels")
+}
+
 // A generic sales-pipeline card, shared across every vertical rather than
 // duplicated per module (hotel_leads, student_leads, ...) - the pipeline
 // mechanics (stage, drag-and-drop, contact/value fields) are identical

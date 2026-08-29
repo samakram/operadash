@@ -67,3 +67,37 @@ export async function deleteLead(tenantId: string, id: string): Promise<void> {
   await assertLeadInTenant(tenantId, id);
   await prisma.lead.delete({ where: { id } });
 }
+
+// ============================================================
+// PIPELINE STAGE LABELS — lets a tenant rename "New/Contacted/Qualified/..."
+// per module without touching the underlying LeadStage enum.
+// ============================================================
+
+const DEFAULT_STAGE_LABELS: Record<LeadStage, string> = {
+  new: "New",
+  contacted: "Contacted",
+  qualified: "Qualified",
+  won: "Won",
+  lost: "Lost",
+};
+const ALL_STAGES: LeadStage[] = ["new", "contacted", "qualified", "won", "lost"];
+
+export async function getStageLabels(tenantId: string, module: ModuleName): Promise<{ stage: LeadStage; label: string }[]> {
+  const overrides = await prisma.pipelineStageLabel.findMany({ where: { tenantId, module } });
+  const overrideMap = new Map(overrides.map((o) => [o.stage, o.label]));
+  return ALL_STAGES.map((stage) => ({ stage, label: overrideMap.get(stage) ?? DEFAULT_STAGE_LABELS[stage] }));
+}
+
+export async function setStageLabel(tenantId: string, module: ModuleName, stage: LeadStage, label: string): Promise<void> {
+  const trimmed = label.trim();
+  if (!trimmed || trimmed === DEFAULT_STAGE_LABELS[stage]) {
+    // Blank or back to the default — drop the override instead of storing a no-op row.
+    await prisma.pipelineStageLabel.deleteMany({ where: { tenantId, module, stage } });
+    return;
+  }
+  await prisma.pipelineStageLabel.upsert({
+    where: { tenantId_module_stage: { tenantId, module, stage } },
+    create: { tenantId, module, stage, label: trimmed },
+    update: { label: trimmed },
+  });
+}

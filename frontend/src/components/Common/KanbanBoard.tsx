@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Pencil } from "lucide-react";
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,47 @@ interface KanbanBoardProps<T extends { id: string }> {
   renderCard: (item: T) => ReactNode;
   onMove: (itemId: string, newColumnId: string) => void;
   emptyMessage?: string;
+  /** When provided, column headers become click-to-rename (a text input replaces the label). */
+  onRenameColumn?: (columnId: string, newLabel: string) => void;
+}
+
+function ColumnHeader({ column, onRename }: { column: KanbanColumn; onRename?: (label: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(column.label);
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setEditing(false);
+          if (draft.trim() && draft !== column.label) onRename?.(draft.trim());
+          else setDraft(column.label);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") {
+            setDraft(column.label);
+            setEditing(false);
+          }
+        }}
+        className="w-full rounded-md border border-aurora-accent bg-white px-1.5 py-0.5 text-sm font-semibold outline-none"
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => onRename && setEditing(true)}
+      disabled={!onRename}
+      className={cn("group flex items-center gap-1 text-sm font-semibold", column.accentClass ?? "text-aurora-text/80")}
+    >
+      {column.label}
+      {onRename && <Pencil size={11} className="opacity-0 transition group-hover:opacity-50" />}
+    </button>
+  );
 }
 
 function DraggableCard({ id, children }: { id: string; children: ReactNode }) {
@@ -57,6 +99,7 @@ export function KanbanBoard<T extends { id: string }>({
   renderCard,
   onMove,
   emptyMessage = "Nothing here yet",
+  onRenameColumn,
 }: KanbanBoardProps<T>) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -78,9 +121,9 @@ export function KanbanBoard<T extends { id: string }>({
           const columnItems = items.filter((item) => getColumnId(item) === column.id);
           return (
             <div key={column.id} className="flex min-w-[240px] flex-1 flex-col">
-              <div className="mb-2 flex items-center justify-between px-1">
-                <span className={cn("text-sm font-semibold", column.accentClass ?? "text-aurora-text/80")}>{column.label}</span>
-                <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-aurora-text/50">{columnItems.length}</span>
+              <div className="mb-2 flex items-center justify-between gap-2 px-1">
+                <ColumnHeader column={column} onRename={onRenameColumn ? (label) => onRenameColumn(column.id, label) : undefined} />
+                <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-aurora-text/50">{columnItems.length}</span>
               </div>
               <DroppableColumn id={column.id}>
                 {columnItems.length === 0 ? (

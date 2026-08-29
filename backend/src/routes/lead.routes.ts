@@ -35,6 +35,27 @@ const leadUpdateSchema = leadCreateSchema.partial().extend({
   position: emptyToUndefined(z.coerce.number().int()),
 });
 
+router.get("/stage-labels", async (req, res, next) => {
+  try {
+    const module = moduleEnum.parse(req.query.module);
+    res.json(await leadService.getStageLabels(req.tenantId!, module));
+  } catch (err) {
+    next(err);
+  }
+});
+
+const stageLabelSchema = z.object({ module: moduleEnum, stage: stageEnum, label: z.string().max(100) });
+
+router.patch("/stage-labels", requireRole("tenant_admin", "super_admin"), async (req, res, next) => {
+  try {
+    const { module, stage, label } = stageLabelSchema.parse(req.body);
+    await leadService.setStageLabel(req.tenantId!, module, stage, label);
+    res.json(await leadService.getStageLabels(req.tenantId!, module));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/", async (req, res, next) => {
   try {
     const module = req.query.module ? moduleEnum.parse(req.query.module) : undefined;

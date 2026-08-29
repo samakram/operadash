@@ -32,12 +32,19 @@ interface BoardResponse {
   total: number;
 }
 
-const COLUMNS: KanbanColumn[] = [
-  { id: "new", label: "New", accentClass: "text-aurora-blue" },
-  { id: "contacted", label: "Contacted", accentClass: "text-aurora-cyan" },
-  { id: "qualified", label: "Qualified", accentClass: "text-aurora-accent" },
-  { id: "won", label: "Won", accentClass: "text-aurora-success" },
-  { id: "lost", label: "Lost", accentClass: "text-aurora-error" },
+const STAGE_ACCENTS: Record<LeadStage, string> = {
+  new: "text-aurora-blue",
+  contacted: "text-aurora-cyan",
+  qualified: "text-aurora-accent",
+  won: "text-aurora-success",
+  lost: "text-aurora-error",
+};
+const DEFAULT_COLUMNS: KanbanColumn[] = [
+  { id: "new", label: "New", accentClass: STAGE_ACCENTS.new },
+  { id: "contacted", label: "Contacted", accentClass: STAGE_ACCENTS.contacted },
+  { id: "qualified", label: "Qualified", accentClass: STAGE_ACCENTS.qualified },
+  { id: "won", label: "Won", accentClass: STAGE_ACCENTS.won },
+  { id: "lost", label: "Lost", accentClass: STAGE_ACCENTS.lost },
 ];
 
 const emptyForm = { title: "", contactName: "", contactEmail: "", contactPhone: "", estimatedValue: "", source: "", notes: "" };
@@ -45,6 +52,7 @@ const emptyForm = { title: "", contactName: "", contactEmail: "", contactPhone: 
 export function LeadsBoard({ module, label }: { module: ModuleName; label: string }) {
   const { show } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [columns, setColumns] = useState<KanbanColumn[]>(DEFAULT_COLUMNS);
   const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
@@ -67,6 +75,25 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    api
+      .get<{ stage: LeadStage; label: string }[]>("/leads/stage-labels", { params: { module } })
+      .then(({ data }) => setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage] }))))
+      .catch(() => undefined);
+  }, [module]);
+
+  const handleRenameColumn = async (stage: string, newLabel: string) => {
+    const previous = columns;
+    setColumns((prev) => prev.map((c) => (c.id === stage ? { ...c, label: newLabel } : c)));
+    try {
+      const { data } = await api.patch<{ stage: LeadStage; label: string }[]>("/leads/stage-labels", { module, stage, label: newLabel });
+      setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage] })));
+    } catch (err) {
+      setColumns(previous);
+      show(getApiErrorMessage(err, "Failed to rename stage"), "error");
+    }
+  };
 
   const handleMove = async (leadId: string, newStage: string) => {
     const previous = leads;
@@ -136,7 +163,7 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
       <div className="flex items-center justify-between">
         <div>
           <h3>{label} pipeline</h3>
-          <p className="text-sm text-aurora-text/60">Drag a card between stages to update it.</p>
+          <p className="text-sm text-aurora-text/60">Drag a card between stages to update it — click a stage name to rename it.</p>
         </div>
         <AuroraButton size="sm" icon={<Plus size={16} />} onClick={openCreate}>
           Add lead
@@ -144,10 +171,11 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
       </div>
 
       <KanbanBoard
-        columns={COLUMNS}
+        columns={columns}
         items={leads}
         getColumnId={(lead) => lead.stage}
         onMove={handleMove}
+        onRenameColumn={handleRenameColumn}
         renderCard={(lead) => (
           <GlassCard padding="sm" className="mb-2 flex flex-col gap-1.5">
             <div className="flex items-start justify-between gap-2">
