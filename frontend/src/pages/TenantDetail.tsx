@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2 } from "lucide-react";
+import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2, ScrollText } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { AuroraButton } from "@/components/Common/AuroraButton";
@@ -10,7 +10,7 @@ import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
 import { Toggle } from "@/components/Common/Toggle";
 import { useAuth } from "@/hooks/useAuth";
-import { formatCurrency, formatDate, initials, titleCase } from "@/lib/utils";
+import { formatCurrency, formatDate, initials, splitFullName, titleCase } from "@/lib/utils";
 import type { ModuleName, PlanTier, Tenant } from "@/hooks/useTenant";
 
 interface TenantUser {
@@ -47,7 +47,7 @@ const USER_ROLE_OPTIONS = [
   { value: "staff", label: "Staff" },
 ];
 
-const emptyUserForm = { email: "", firstName: "", lastName: "", role: "tenant_admin" as "tenant_admin" | "staff" };
+const emptyUserForm = { email: "", name: "", role: "tenant_admin" as "tenant_admin" | "staff" };
 
 function randomPassword(): string {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 12);
@@ -168,7 +168,8 @@ export default function TenantDetail() {
     if (!tenant) return;
     setIsSavingUser(true);
     try {
-      const { data } = await api.post("/users", { ...userForm, tenantId: tenant.id });
+      const { firstName, lastName } = splitFullName(userForm.name);
+      const { data } = await api.post("/users", { email: userForm.email, role: userForm.role, firstName, lastName, tenantId: tenant.id });
       setNewUserCreds({ email: userForm.email, password: data.tempPassword });
       await load();
     } catch (err) {
@@ -258,6 +259,9 @@ export default function TenantDetail() {
         <div className="flex items-center gap-2">
           <AuroraButton variant="ghost" icon={<LogIn size={16} />} onClick={handleImpersonate}>
             Sign in as admin
+          </AuroraButton>
+          <AuroraButton variant="ghost" icon={<ScrollText size={16} />} onClick={() => navigate(`/admin/tenants/${tenant.id}/audit-log`)}>
+            Audit log
           </AuroraButton>
           <AuroraButton variant="danger" icon={<Trash2 size={16} />} onClick={() => setDeleteOpen(true)}>
             Delete tenant
@@ -417,8 +421,7 @@ export default function TenantDetail() {
               value={userForm.role}
               onChange={(e) => setUserForm((p) => ({ ...p, role: e.target.value as "tenant_admin" | "staff" }))}
             />
-            <GlassInput label="First name" required value={userForm.firstName} onChange={(e) => setUserForm((p) => ({ ...p, firstName: e.target.value }))} />
-            <GlassInput label="Last name" required value={userForm.lastName} onChange={(e) => setUserForm((p) => ({ ...p, lastName: e.target.value }))} />
+            <GlassInput label="Name" required placeholder="Ada Admin" value={userForm.name} onChange={(e) => setUserForm((p) => ({ ...p, name: e.target.value }))} />
             <GlassInput
               label="Email"
               type="email"

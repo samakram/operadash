@@ -11,7 +11,7 @@ router.use(authenticate);
 const createUserSchema = z.object({
   email: z.string().email(),
   firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  lastName: z.string(),
   role: z.enum(["tenant_admin", "staff", "super_admin"]).default("staff"),
   tenantId: z.string().uuid().optional(),
 });

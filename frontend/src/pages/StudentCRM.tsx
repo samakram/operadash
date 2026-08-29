@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { CalendarCheck, GraduationCap, Users, Wallet } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { cn, formatCurrency, formatDate, titleCase } from "@/lib/utils";
@@ -152,40 +152,6 @@ function StatusBadge({ value }: { value: string }) {
 // ============================================================
 // Tab bar
 // ============================================================
-
-const TABS = [
-  { to: "", label: "Dashboard", end: true },
-  { to: "students", label: "Students" },
-  { to: "classes", label: "Classes" },
-  { to: "attendance", label: "Attendance" },
-  { to: "grades", label: "Grades" },
-  { to: "tuition", label: "Tuition" },
-  { to: "announcements", label: "Announcements" },
-  { to: "pipeline", label: "Pipeline" },
-];
-
-function TabBar() {
-  return (
-    <div className="flex flex-wrap gap-1 border-b border-black/10 pb-1">
-      {TABS.map((tab) => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          end={tab.end}
-          className={({ isActive }) =>
-            cn(
-              "rounded-t-lg px-4 py-2 text-sm font-medium text-aurora-text/60 transition",
-              "hover:bg-black/5 hover:text-aurora-text",
-              isActive && "bg-white text-aurora-accent shadow-glass",
-            )
-          }
-        >
-          {tab.label}
-        </NavLink>
-      ))}
-    </div>
-  );
-}
 
 // ============================================================
 // Dashboard tab
@@ -831,7 +797,6 @@ export default function StudentCRM() {
         <h2>Student CRM</h2>
         <p className="mt-1 text-sm text-aurora-text/60">Classes, attendance, grades, and tuition</p>
       </div>
-      <TabBar />
       <Routes>
         <Route index element={<DashboardTab />} />
         <Route path="students" element={<StudentsTab />} />

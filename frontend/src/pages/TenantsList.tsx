@@ -10,7 +10,7 @@ import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
 import { Toggle } from "@/components/Common/Toggle";
 import { useAuth } from "@/hooks/useAuth";
-import { formatCurrency, titleCase } from "@/lib/utils";
+import { formatCurrency, splitFullName, titleCase } from "@/lib/utils";
 import type { ModuleName, PlanTier, Tenant } from "@/hooks/useTenant";
 
 interface TenantRow extends Tenant {
@@ -42,8 +42,7 @@ const emptyForm = {
   subdomain: "",
   plan: "starter" as PlanTier,
   adminEmail: "",
-  adminFirstName: "",
-  adminLastName: "",
+  adminName: "",
   enabledModules: [] as ModuleName[],
 };
 
@@ -87,7 +86,17 @@ export default function TenantsList() {
   const handleCreate = async () => {
     setIsSaving(true);
     try {
-      const { data } = await api.post("/tenants", form);
+      const { firstName, lastName } = splitFullName(form.adminName);
+      const { name, subdomain, plan, adminEmail, enabledModules } = form;
+      const { data } = await api.post("/tenants", {
+        name,
+        subdomain,
+        plan,
+        adminEmail,
+        enabledModules,
+        adminFirstName: firstName,
+        adminLastName: lastName,
+      });
       show(`Tenant "${form.name}" created`, "success");
       setCreatedCreds({ email: form.adminEmail, password: data.tempPassword });
       setForm(emptyForm);
@@ -254,26 +263,19 @@ export default function TenantsList() {
             />
             <div />
             <GlassInput
-              label="Admin first name"
+              label="Admin name"
               required
-              value={form.adminFirstName}
-              onChange={(e) => setForm((p) => ({ ...p, adminFirstName: e.target.value }))}
+              placeholder="Ada Admin"
+              value={form.adminName}
+              onChange={(e) => setForm((p) => ({ ...p, adminName: e.target.value }))}
             />
             <GlassInput
-              label="Admin last name"
+              label="Admin email"
+              type="email"
               required
-              value={form.adminLastName}
-              onChange={(e) => setForm((p) => ({ ...p, adminLastName: e.target.value }))}
+              value={form.adminEmail}
+              onChange={(e) => setForm((p) => ({ ...p, adminEmail: e.target.value }))}
             />
-            <div className="sm:col-span-2">
-              <GlassInput
-                label="Admin email"
-                type="email"
-                required
-                value={form.adminEmail}
-                onChange={(e) => setForm((p) => ({ ...p, adminEmail: e.target.value }))}
-              />
-            </div>
             <div className="sm:col-span-2">
               <p className="mb-2 text-sm font-medium text-aurora-text/90">Enabled modules</p>
               <div className="flex flex-wrap gap-4">

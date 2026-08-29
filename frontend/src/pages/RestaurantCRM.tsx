@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { DollarSign, PackagePlus, Plus, ShoppingBag, Trash2, TrendingUp, Users } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
@@ -831,40 +831,6 @@ function ReservationsTab() {
 // Tab bar + page shell
 // ============================================================
 
-const TABS = [
-  { to: "dashboard", label: "Dashboard" },
-  { to: "orders", label: "Orders" },
-  { to: "menu", label: "Menu" },
-  { to: "customers", label: "Customers" },
-  { to: "staff", label: "Staff" },
-  { to: "inventory", label: "Inventory" },
-  { to: "tables", label: "Tables" },
-  { to: "reservations", label: "Reservations" },
-  { to: "pipeline", label: "Pipeline" },
-];
-
-function RestaurantTabBar() {
-  return (
-    <nav className="flex flex-wrap gap-1 border-b border-black/10 pb-1">
-      {TABS.map((tab) => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          className={({ isActive }) =>
-            cn(
-              "rounded-t-lg px-4 py-2 text-sm font-medium text-aurora-text/60 transition",
-              "hover:bg-black/5 hover:text-aurora-text",
-              isActive && "bg-white text-aurora-accent shadow-glass",
-            )
-          }
-        >
-          {tab.label}
-        </NavLink>
-      ))}
-    </nav>
-  );
-}
-
 export default function RestaurantCRM() {
   const [orderUpdateTick, setOrderUpdateTick] = useState(0);
 
@@ -885,8 +851,6 @@ export default function RestaurantCRM() {
         <h2>Restaurant CRM</h2>
         <p className="mt-1 text-sm text-aurora-text/60">Orders, menu, staff, inventory, tables, and reservations</p>
       </div>
-
-      <RestaurantTabBar />
 
       <Routes>
         <Route index element={<Navigate to="dashboard" replace />} />

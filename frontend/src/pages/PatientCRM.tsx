@@ -1,18 +1,6 @@
 import { useEffect, useState } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import {
-  LayoutGrid,
-  Users,
-  Stethoscope,
-  CalendarClock,
-  ClipboardList,
-  Pill,
-  Activity,
-  FlaskConical,
-  ShieldCheck,
-  Receipt,
-  Kanban,
-} from "lucide-react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { Users, CalendarClock, Pill, FlaskConical } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
@@ -654,20 +642,6 @@ function BillingTab() {
 // Root: tab bar + routes
 // ============================================================
 
-const TABS = [
-  { to: "", label: "Dashboard", icon: LayoutGrid, end: true },
-  { to: "patients", label: "Patients", icon: Users },
-  { to: "providers", label: "Providers", icon: Stethoscope },
-  { to: "appointments", label: "Appointments", icon: CalendarClock },
-  { to: "medical-records", label: "Medical Records", icon: ClipboardList },
-  { to: "prescriptions", label: "Prescriptions", icon: Pill },
-  { to: "vitals", label: "Vitals", icon: Activity },
-  { to: "lab-results", label: "Lab Results", icon: FlaskConical },
-  { to: "insurance", label: "Insurance", icon: ShieldCheck },
-  { to: "billing", label: "Billing", icon: Receipt },
-  { to: "pipeline", label: "Pipeline", icon: Kanban },
-];
-
 export default function PatientCRM() {
   return (
     <div className="animate-fade-in flex flex-col gap-5">
@@ -675,26 +649,6 @@ export default function PatientCRM() {
         <h2>Patient CRM</h2>
         <p className="mt-1 text-sm text-aurora-text/60">Appointments, records, prescriptions, and billing</p>
       </div>
-
-      <nav className="flex flex-wrap gap-1 border-b border-black/10 pb-2">
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.label}
-            to={tab.to}
-            end={tab.end}
-            className={({ isActive }) =>
-              cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-aurora-text/60 transition duration-300",
-                "hover:bg-black/10 hover:text-aurora-text",
-                isActive && "bg-white text-aurora-accent shadow-glass",
-              )
-            }
-          >
-            <tab.icon size={15} />
-            {tab.label}
-          </NavLink>
-        ))}
-      </nav>
 
       <Routes>
         <Route index element={<DashboardTab />} />

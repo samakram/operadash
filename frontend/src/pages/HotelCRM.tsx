@@ -1,19 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import {
-  LayoutGrid,
-  Users,
-  BedDouble,
-  CalendarCheck,
-  ClipboardList,
-  Wrench,
-  Receipt,
-  Percent,
-  DollarSign,
-  UserCheck,
-  AlertTriangle,
-  Kanban,
-} from "lucide-react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { Percent, DollarSign, UserCheck, AlertTriangle } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import { GlassCard } from "@/components/Common/GlassCard";
@@ -583,17 +570,6 @@ function InvoicesTab() {
 // Root: tab bar + routes
 // ============================================================
 
-const TABS = [
-  { to: "", label: "Dashboard", icon: LayoutGrid, end: true },
-  { to: "guests", label: "Guests", icon: Users },
-  { to: "rooms", label: "Rooms", icon: BedDouble },
-  { to: "reservations", label: "Reservations", icon: CalendarCheck },
-  { to: "tasks", label: "Staff Tasks", icon: ClipboardList },
-  { to: "maintenance", label: "Maintenance", icon: Wrench },
-  { to: "invoices", label: "Invoices", icon: Receipt },
-  { to: "pipeline", label: "Pipeline", icon: Kanban },
-];
-
 export default function HotelCRM() {
   return (
     <div className="animate-fade-in flex flex-col gap-5">
@@ -601,26 +577,6 @@ export default function HotelCRM() {
         <h2>Hotel CRM</h2>
         <p className="mt-1 text-sm text-aurora-text/60">Guests, rooms, reservations, and housekeeping</p>
       </div>
-
-      <nav className="flex flex-wrap gap-1 border-b border-black/10 pb-2">
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.label}
-            to={tab.to}
-            end={tab.end}
-            className={({ isActive }) =>
-              cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-aurora-text/60 transition duration-300",
-                "hover:bg-black/10 hover:text-aurora-text",
-                isActive && "bg-white text-aurora-accent shadow-glass",
-              )
-            }
-          >
-            <tab.icon size={15} />
-            {tab.label}
-          </NavLink>
-        ))}
-      </nav>
 
       <Routes>
         <Route index element={<DashboardTab />} />

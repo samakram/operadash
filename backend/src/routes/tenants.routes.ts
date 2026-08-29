@@ -27,7 +27,7 @@ const createTenantSchema = z.object({
   enabledModules: z.array(moduleEnum).default([]),
   adminEmail: z.string().email(),
   adminFirstName: z.string().min(1),
-  adminLastName: z.string().min(1),
+  adminLastName: z.string(),
 });
 
 router.post("/", requireRole("super_admin"), async (req, res, next) => {

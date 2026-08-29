@@ -24,6 +24,7 @@ import PatientCRM from "@/pages/PatientCRM";
 import RestaurantCRM from "@/pages/RestaurantCRM";
 import SupportPage from "@/pages/SupportPage";
 import SupportTicketDetail from "@/pages/SupportTicketDetail";
+import AuditLogPage from "@/pages/AuditLogPage";
 
 function RootRedirect() {
   const { user, isLoading } = useAuth();
@@ -55,6 +56,7 @@ export default function App() {
             >
               <Route path="tenants" element={<TenantsList />} />
               <Route path="tenants/:id" element={<TenantDetail />} />
+              <Route path="tenants/:id/audit-log" element={<AuditLogPage />} />
               <Route path="modules" element={<ModulesPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="support" element={<SupportPage />} />
@@ -85,6 +87,14 @@ export default function App() {
                 element={
                   <RequireRole roles={["tenant_admin"]}>
                     <StaffPage />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="audit-log"
+                element={
+                  <RequireRole roles={["tenant_admin"]}>
+                    <AuditLogPage />
                   </RequireRole>
                 }
               />

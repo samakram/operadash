@@ -29,6 +29,7 @@ import {
   Archive,
   Table2,
   ClipboardCheck,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -63,24 +64,25 @@ const MODULE_META: Record<ModuleName, { label: string; icon: LucideIcon; to: str
 // just the in-page tabs.
 const MODULE_FEATURES: Record<ModuleName, SubNavItem[]> = {
   hotel: [
+    { to: "pipeline", label: "Pipeline", icon: Kanban },
     { to: "guests", label: "Guests", icon: Users },
     { to: "rooms", label: "Rooms", icon: BedDouble },
     { to: "reservations", label: "Reservations", icon: CalendarCheck },
     { to: "tasks", label: "Staff Tasks", icon: ClipboardList },
     { to: "maintenance", label: "Maintenance", icon: Wrench },
     { to: "invoices", label: "Invoices", icon: Receipt },
-    { to: "pipeline", label: "Pipeline", icon: Kanban },
   ],
   student: [
+    { to: "pipeline", label: "Pipeline", icon: Kanban },
     { to: "students", label: "Students", icon: Users },
     { to: "classes", label: "Classes", icon: BookOpen },
     { to: "attendance", label: "Attendance", icon: ClipboardCheck },
     { to: "grades", label: "Grades", icon: GraduationCap },
     { to: "tuition", label: "Tuition", icon: Receipt },
     { to: "announcements", label: "Announcements", icon: Megaphone },
-    { to: "pipeline", label: "Pipeline", icon: Kanban },
   ],
   patient: [
+    { to: "pipeline", label: "Pipeline", icon: Kanban },
     { to: "patients", label: "Patients", icon: Users },
     { to: "providers", label: "Providers", icon: Stethoscope },
     { to: "appointments", label: "Appointments", icon: CalendarClock },
@@ -90,9 +92,9 @@ const MODULE_FEATURES: Record<ModuleName, SubNavItem[]> = {
     { to: "lab-results", label: "Lab Results", icon: FlaskConical },
     { to: "insurance", label: "Insurance", icon: ShieldCheck },
     { to: "billing", label: "Billing", icon: Receipt },
-    { to: "pipeline", label: "Pipeline", icon: Kanban },
   ],
   restaurant: [
+    { to: "pipeline", label: "Pipeline", icon: Kanban },
     { to: "orders", label: "Orders", icon: ClipboardList },
     { to: "menu", label: "Menu", icon: UtensilsCrossed },
     { to: "customers", label: "Customers", icon: Users },
@@ -100,7 +102,6 @@ const MODULE_FEATURES: Record<ModuleName, SubNavItem[]> = {
     { to: "inventory", label: "Inventory", icon: Archive },
     { to: "tables", label: "Tables", icon: Table2 },
     { to: "reservations", label: "Reservations", icon: CalendarCheck },
-    { to: "pipeline", label: "Pipeline", icon: Kanban },
   ],
 };
 
@@ -119,7 +120,12 @@ function useNavItems(): NavItem[] {
     : [
         { to: "/app", label: "Dashboard", icon: LayoutGrid },
         ...(tenant?.enabledModules.map((m) => ({ to: MODULE_META[m].to, label: MODULE_META[m].label, icon: MODULE_META[m].icon, moduleKey: m })) ?? []),
-        ...(user?.role === "tenant_admin" ? [{ to: "/app/staff", label: "Staff", icon: Users }] : []),
+        ...(user?.role === "tenant_admin"
+          ? [
+              { to: "/app/staff", label: "Staff", icon: Users },
+              { to: "/app/audit-log", label: "Audit Log", icon: ScrollText },
+            ]
+          : []),
         { to: "/app/support", label: "Support", icon: MessageCircle },
       ];
 }
