@@ -39,6 +39,11 @@ enum ModuleName {
   restaurant
 }
 
+enum SupportTicketStatus {
+  open
+  resolved
+}
+
 enum RoomType {
   single
   double
@@ -277,7 +282,8 @@ model Tenant {
   monthlyRevenue   Decimal      @default(0) @map("monthly_revenue") @db.Decimal(10, 2)
   updatedAt        DateTime     @updatedAt @map("updated_at")
 
-  users User[]
+  users          User[]
+  supportTickets SupportTicket[]
 
   @@map("tenants")
 }
@@ -320,6 +326,40 @@ model FeatureFlag {
 
   @@unique([tenantId, moduleName, featureName])
   @@map("feature_flags")
+}
+
+// A tenant's support conversation with the platform (super admin) side —
+// iMessage-style thread of SupportMessage rows rather than a ticket form
+// with a single reply-per-status-change, matching how the product actually
+// gets used.
+model SupportTicket {
+  id        String              @id @default(uuid()) @db.Uuid
+  tenantId  String              @map("tenant_id") @db.Uuid
+  subject   String              @db.VarChar(255)
+  status    SupportTicketStatus @default(open)
+  createdBy String              @map("created_by") @db.Uuid
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages SupportMessage[]
+
+  @@index([tenantId])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id         String   @id @default(uuid()) @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  senderId   String   @map("sender_id") @db.Uuid
+  senderRole Role     @map("sender_role")
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("support_messages")
 }
 
 // A generic sales-pipeline card, shared across every vertical rather than

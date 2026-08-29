@@ -17,6 +17,7 @@ import patientRoutes from "@/routes/patient.routes";
 import restaurantRoutes from "@/routes/restaurant.routes";
 import billingRoutes from "@/routes/billing.routes";
 import leadRoutes from "@/routes/lead.routes";
+import supportRoutes from "@/routes/support.routes";
 
 export function createApp(): Express {
   const app = express();
@@ -53,6 +54,7 @@ export function createApp(): Express {
   app.use("/api/restaurant", restaurantRoutes);
   app.use("/api/billing", billingRoutes);
   app.use("/api/leads", leadRoutes);
+  app.use("/api/support", supportRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

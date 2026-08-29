@@ -10,6 +10,7 @@ import {
   Stethoscope,
   UtensilsCrossed,
   Users,
+  MessageCircle,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -40,12 +41,14 @@ function useNavItems(): NavItem[] {
         { to: "/admin/tenants", label: "Tenants", icon: Building2 },
         { to: "/admin/modules", label: "Modules", icon: Blocks },
         { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+        { to: "/admin/support", label: "Support", icon: MessageCircle },
         { to: "/admin/settings", label: "Settings", icon: Settings },
       ]
     : [
         { to: "/app", label: "Dashboard", icon: LayoutGrid },
         ...(tenant?.enabledModules.map((m) => ({ to: MODULE_META[m].to, label: MODULE_META[m].label, icon: MODULE_META[m].icon })) ?? []),
         ...(user?.role === "tenant_admin" ? [{ to: "/app/staff", label: "Staff", icon: Users }] : []),
+        { to: "/app/support", label: "Support", icon: MessageCircle },
       ];
 }
 

@@ -22,6 +22,8 @@ import HotelCRM from "@/pages/HotelCRM";
 import StudentCRM from "@/pages/StudentCRM";
 import PatientCRM from "@/pages/PatientCRM";
 import RestaurantCRM from "@/pages/RestaurantCRM";
+import SupportPage from "@/pages/SupportPage";
+import SupportTicketDetail from "@/pages/SupportTicketDetail";
 
 function RootRedirect() {
   const { user, isLoading } = useAuth();
@@ -55,6 +57,8 @@ export default function App() {
               <Route path="tenants/:id" element={<TenantDetail />} />
               <Route path="modules" element={<ModulesPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="support" element={<SupportPage />} />
+              <Route path="support/:id" element={<SupportTicketDetail />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route index element={<Navigate to="tenants" replace />} />
             </Route>
@@ -74,6 +78,8 @@ export default function App() {
               <Route path="student/*" element={<StudentCRM />} />
               <Route path="patient/*" element={<PatientCRM />} />
               <Route path="restaurant/*" element={<RestaurantCRM />} />
+              <Route path="support" element={<SupportPage />} />
+              <Route path="support/:id" element={<SupportTicketDetail />} />
               <Route
                 path="staff"
                 element={
