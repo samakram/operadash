@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
-import { Users, CalendarClock, Pill, FlaskConical } from "lucide-react";
+import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Users, CalendarClock, Pill, FlaskConical, FileText, ArrowLeft } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
@@ -192,6 +192,7 @@ interface PatientRow extends Record<string, unknown> {
 }
 
 function PatientsTab() {
+  const navigate = useNavigate();
   const columns: Column<PatientRow>[] = [
     { key: "firstName", header: "Name", sortable: true, render: (r) => `${r.firstName} ${r.lastName}` },
     { key: "email", header: "Email" },
@@ -227,7 +228,219 @@ function PatientsTab() {
       searchPlaceholder="Search patients by name, email, or phone..."
       columns={columns}
       fields={fields}
+      rowActions={(row) => (
+        <button
+          onClick={() => navigate(`chart/${row.id}`)}
+          className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
+          aria-label="View chart"
+          title="View chart"
+        >
+          <FileText size={16} />
+        </button>
+      )}
     />
+  );
+}
+
+// ============================================================
+// Patient chart — everything about one patient, read-only, one screen
+// ============================================================
+
+interface ChartPerson {
+  firstName: string;
+  lastName: string;
+}
+
+interface ChartData {
+  patient: PatientRow & { address: string | null; city: string | null; country: string | null; emergencyContactName: string | null; emergencyContactPhone: string | null; medicalHistorySummary: string | null };
+  appointments: { id: string; appointmentDatetime: string; status: string; reasonForVisit: string | null; provider: ChartPerson }[];
+  medicalRecords: { id: string; visitDate: string; diagnosis: string | null; treatmentPlan: string | null; chiefComplaint: string | null; provider: ChartPerson }[];
+  prescriptions: { id: string; medicationName: string; dosage: string; frequency: string; startDate: string; endDate: string | null; prescribingProvider: ChartPerson }[];
+  vitalSigns: { id: string; visitDate: string; bloodPressure: string | null; heartRate: number | null; temperature: string | null; weight: string | null }[];
+  labResults: { id: string; testName: string; testDate: string; resultValue: string | null; status: string }[];
+  insurance: { id: string; providerName: string | null; policyNumber: string | null; expirationDate: string | null }[];
+  billing: { id: string; amountCharged: string; insuranceClaimStatus: string | null; patientResponsibility: string | null }[];
+}
+
+function ChartSection({ title, icon, count, children }: { title: string; icon: React.ReactNode; count: number; children: React.ReactNode }) {
+  return (
+    <GlassCard className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-aurora-accent-soft text-aurora-accent">{icon}</div>
+        <h3 className="text-sm font-semibold">
+          {title} <span className="font-normal text-aurora-text/40">({count})</span>
+        </h3>
+      </div>
+      {count === 0 ? <p className="text-xs text-aurora-text/40">None recorded</p> : <div className="flex flex-col divide-y divide-black/5">{children}</div>}
+    </GlassCard>
+  );
+}
+
+function PatientChart() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { show } = useToast();
+  const [data, setData] = useState<ChartData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    setIsLoading(true);
+    api
+      .get<ChartData>(`/patient/patients/${id}/chart`)
+      .then(({ data }) => setData(data))
+      .catch((err) => show(getApiErrorMessage(err, "Failed to load patient chart"), "error"))
+      .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  if (isLoading || !data) return <LoadingSpinner fullscreen />;
+  const { patient } = data;
+
+  return (
+    <div className="animate-fade-in flex flex-col gap-5">
+      <button onClick={() => navigate(-1)} className="inline-flex w-fit items-center gap-1 text-sm text-aurora-text/60 hover:text-aurora-text">
+        <ArrowLeft size={14} /> Back to patients
+      </button>
+
+      <GlassCard className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2>
+              {patient.firstName} {patient.lastName}
+            </h2>
+            <p className="mt-1 text-sm text-aurora-text/60">
+              {formatDate(patient.dateOfBirth)} &middot; {patient.bloodType ?? "Blood type unknown"}
+              {patient.city ? ` · ${patient.city}` : ""}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {patient.allergies.length > 0 ? (
+              patient.allergies.map((a) => (
+                <span key={a} className="aurora-badge border-aurora-error/40 text-aurora-error">
+                  {a}
+                </span>
+              ))
+            ) : (
+              <span className="aurora-badge border-aurora-success/40 text-aurora-success">No known allergies</span>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-aurora-text/40">Contact</p>
+            <p>{patient.email ?? "—"}</p>
+            <p>{patient.phone ?? "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-aurora-text/40">Emergency contact</p>
+            <p>{patient.emergencyContactName ?? "—"}</p>
+            <p>{patient.emergencyContactPhone ?? "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-aurora-text/40">Chronic conditions</p>
+            <p>{patient.chronicConditions.length > 0 ? patient.chronicConditions.join(", ") : "—"}</p>
+          </div>
+        </div>
+        {patient.medicalHistorySummary && (
+          <div>
+            <p className="text-xs uppercase tracking-wide text-aurora-text/40">Medical history</p>
+            <p className="text-sm text-aurora-text/80">{patient.medicalHistorySummary}</p>
+          </div>
+        )}
+      </GlassCard>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartSection title="Appointments" icon={<CalendarClock size={16} />} count={data.appointments.length}>
+          {data.appointments.map((a) => (
+            <div key={a.id} className="flex items-center justify-between py-2 text-sm">
+              <div>
+                <p className="font-medium">{formatDateTime(a.appointmentDatetime)}</p>
+                <p className="text-xs text-aurora-text/50">
+                  {a.reasonForVisit ?? "Visit"} with Dr. {a.provider.lastName}
+                </p>
+              </div>
+              <span className="aurora-badge border-black/20">{titleCase(a.status)}</span>
+            </div>
+          ))}
+        </ChartSection>
+
+        <ChartSection title="Medical Records" icon={<Users size={16} />} count={data.medicalRecords.length}>
+          {data.medicalRecords.map((r) => (
+            <div key={r.id} className="py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <p className="font-medium">{r.diagnosis ?? "Visit"}</p>
+                <span className="text-xs text-aurora-text/40">{formatDate(r.visitDate)}</span>
+              </div>
+              <p className="text-xs text-aurora-text/50">{r.treatmentPlan ?? r.chiefComplaint ?? "—"}</p>
+            </div>
+          ))}
+        </ChartSection>
+
+        <ChartSection title="Prescriptions" icon={<Pill size={16} />} count={data.prescriptions.length}>
+          {data.prescriptions.map((p) => (
+            <div key={p.id} className="flex items-center justify-between py-2 text-sm">
+              <div>
+                <p className="font-medium">{p.medicationName}</p>
+                <p className="text-xs text-aurora-text/50">
+                  {p.dosage} &middot; {titleCase(p.frequency)}
+                </p>
+              </div>
+              <span className="text-xs text-aurora-text/40">{formatDate(p.startDate)}</span>
+            </div>
+          ))}
+        </ChartSection>
+
+        <ChartSection title="Vitals" icon={<Users size={16} />} count={data.vitalSigns.length}>
+          {data.vitalSigns.map((v) => (
+            <div key={v.id} className="py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <p className="font-medium">{formatDate(v.visitDate)}</p>
+              </div>
+              <p className="text-xs text-aurora-text/50">
+                {v.bloodPressure ?? "—"} &middot; HR {v.heartRate ?? "—"} &middot; {v.temperature ?? "—"}&deg; &middot; {v.weight ?? "—"} lb
+              </p>
+            </div>
+          ))}
+        </ChartSection>
+
+        <ChartSection title="Lab Results" icon={<FlaskConical size={16} />} count={data.labResults.length}>
+          {data.labResults.map((l) => (
+            <div key={l.id} className="flex items-center justify-between py-2 text-sm">
+              <div>
+                <p className="font-medium">{l.testName}</p>
+                <p className="text-xs text-aurora-text/50">{formatDate(l.testDate)}</p>
+              </div>
+              <span
+                className={cn(
+                  "aurora-badge",
+                  l.status === "critical" ? "border-aurora-error/40 text-aurora-error" : l.status === "abnormal" ? "border-aurora-warning/40 text-aurora-warning" : "border-aurora-success/40 text-aurora-success",
+                )}
+              >
+                {l.resultValue ?? titleCase(l.status)}
+              </span>
+            </div>
+          ))}
+        </ChartSection>
+
+        <ChartSection title="Insurance & Billing" icon={<FileText size={16} />} count={data.insurance.length + data.billing.length}>
+          {data.insurance.map((i) => (
+            <div key={i.id} className="py-2 text-sm">
+              <p className="font-medium">{i.providerName ?? "Insurance"}</p>
+              <p className="text-xs text-aurora-text/50">
+                Policy {i.policyNumber ?? "—"} &middot; expires {i.expirationDate ? formatDate(i.expirationDate) : "—"}
+              </p>
+            </div>
+          ))}
+          {data.billing.map((b) => (
+            <div key={b.id} className="flex items-center justify-between py-2 text-sm">
+              <p className="font-medium">{formatCurrency(b.amountCharged)}</p>
+              <span className="aurora-badge border-black/20">{b.insuranceClaimStatus ? titleCase(b.insuranceClaimStatus) : "Self-pay"}</span>
+            </div>
+          ))}
+        </ChartSection>
+      </div>
+    </div>
   );
 }
 
@@ -653,6 +866,7 @@ export default function PatientCRM() {
       <Routes>
         <Route index element={<DashboardTab />} />
         <Route path="patients" element={<PatientsTab />} />
+        <Route path="patients/chart/:id" element={<PatientChart />} />
         <Route path="providers" element={<ProvidersTab />} />
         <Route path="appointments" element={<AppointmentsTab />} />
         <Route path="medical-records" element={<MedicalRecordsTab />} />

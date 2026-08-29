@@ -887,3 +887,42 @@ export async function getDashboard(tenantId: string) {
     recentVisits,
   };
 }
+
+// ============================================================
+// PATIENT CHART — everything about one patient in one call, for the
+// provider-facing "click a patient, see their whole history" view.
+// ============================================================
+
+const CHART_ROW_LIMIT = 50;
+
+export async function getPatientChart(tenantId: string, patientId: string) {
+  const patient = await prisma.patientPatient.findFirst({ where: { id: patientId, tenantId } });
+  if (!patient) throw AppError.notFound("Patient not found");
+
+  const [appointments, medicalRecords, prescriptions, vitalSigns, labResults, insurance, billing] = await Promise.all([
+    prisma.patientAppointment.findMany({
+      where: { tenantId, patientId },
+      orderBy: { appointmentDatetime: "desc" },
+      take: CHART_ROW_LIMIT,
+      include: { provider: true },
+    }),
+    prisma.patientMedicalRecord.findMany({
+      where: { tenantId, patientId },
+      orderBy: { visitDate: "desc" },
+      take: CHART_ROW_LIMIT,
+      include: { provider: true },
+    }),
+    prisma.patientPrescription.findMany({
+      where: { tenantId, patientId },
+      orderBy: { startDate: "desc" },
+      take: CHART_ROW_LIMIT,
+      include: { prescribingProvider: true },
+    }),
+    prisma.patientVitalSign.findMany({ where: { tenantId, patientId }, orderBy: { visitDate: "desc" }, take: CHART_ROW_LIMIT }),
+    prisma.patientLabResult.findMany({ where: { tenantId, patientId }, orderBy: { testDate: "desc" }, take: CHART_ROW_LIMIT }),
+    prisma.patientInsurance.findMany({ where: { tenantId, patientId }, orderBy: { createdAt: "desc" }, take: CHART_ROW_LIMIT }),
+    prisma.patientBilling.findMany({ where: { tenantId, patientId }, orderBy: { createdAt: "desc" }, take: CHART_ROW_LIMIT }),
+  ]);
+
+  return { patient, appointments, medicalRecords, prescriptions, vitalSigns, labResults, insurance, billing };
+}

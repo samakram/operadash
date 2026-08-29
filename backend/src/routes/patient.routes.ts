@@ -74,6 +74,14 @@ router.get("/patients", async (req, res, next) => {
   }
 });
 
+router.get("/patients/:id/chart", async (req, res, next) => {
+  try {
+    res.json(await patientService.getPatientChart(req.tenantId!, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/patients/export", async (req, res, next) => {
   try {
     const rows = await patientService.exportPatients(req.tenantId!, searchParam(req));
