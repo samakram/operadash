@@ -4,6 +4,7 @@ import { CalendarCheck, GraduationCap, Users, Wallet } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { cn, formatCurrency, formatDate, titleCase } from "@/lib/utils";
 import { EntityCrudPage, type FieldDef } from "@/components/Common/EntityCrudPage";
+import { LeadsBoard } from "@/components/Common/LeadsBoard";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { AuroraButton } from "@/components/Common/AuroraButton";
 import { GlassSelect, GlassInput } from "@/components/Common/GlassInput";
@@ -160,6 +161,7 @@ const TABS = [
   { to: "grades", label: "Grades" },
   { to: "tuition", label: "Tuition" },
   { to: "announcements", label: "Announcements" },
+  { to: "pipeline", label: "Pipeline" },
 ];
 
 function TabBar() {
@@ -838,6 +840,7 @@ export default function StudentCRM() {
         <Route path="grades" element={<GradesTab />} />
         <Route path="tuition" element={<TuitionTab />} />
         <Route path="announcements" element={<AnnouncementsTab />} />
+        <Route path="pipeline" element={<LeadsBoard module="student" label="Student" />} />
       </Routes>
     </div>
   );

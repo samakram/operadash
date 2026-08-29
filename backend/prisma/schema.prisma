@@ -24,6 +24,14 @@ enum PlanTier {
   enterprise
 }
 
+enum LeadStage {
+  new
+  contacted
+  qualified
+  won
+  lost
+}
+
 enum ModuleName {
   hotel
   student
@@ -218,19 +226,19 @@ enum ReservationStatus {
 // ============================================================
 
 model User {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique @db.VarChar(255)
-  password     String    @db.VarChar(255)
-  tenantId     String?   @map("tenant_id") @db.Uuid
-  role         Role
-  firstName    String?   @map("first_name") @db.VarChar(255)
-  lastName     String?   @map("last_name") @db.VarChar(255)
-  avatarUrl    String?   @map("avatar_url") @db.VarChar(255)
-  active       Boolean   @default(true)
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  tenantId  String?  @map("tenant_id") @db.Uuid
+  role      Role
+  firstName String?  @map("first_name") @db.VarChar(255)
+  lastName  String?  @map("last_name") @db.VarChar(255)
+  avatarUrl String?  @map("avatar_url") @db.VarChar(255)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenant             Tenant?             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   passwordResetTokens PasswordResetToken[]
 
   @@index([tenantId])
@@ -255,19 +263,19 @@ model PasswordResetToken {
 }
 
 model Tenant {
-  id                String   @id @default(uuid()) @db.Uuid
-  name              String   @db.VarChar(255)
-  subdomain         String   @unique @db.VarChar(255)
-  domain            String?  @db.VarChar(255)
-  plan              PlanTier @default(starter)
-  enabledModules    ModuleName[] @default([]) @map("enabled_modules")
-  logoUrl           String?  @map("logo_url") @db.VarChar(255)
-  settings          Json     @default("{}")
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now()) @map("created_at")
-  stripeCustomerId  String?  @map("stripe_customer_id") @db.VarChar(255)
-  monthlyRevenue    Decimal  @default(0) @map("monthly_revenue") @db.Decimal(10, 2)
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id               String       @id @default(uuid()) @db.Uuid
+  name             String       @db.VarChar(255)
+  subdomain        String       @unique @db.VarChar(255)
+  domain           String?      @db.VarChar(255)
+  plan             PlanTier     @default(starter)
+  enabledModules   ModuleName[] @default([]) @map("enabled_modules")
+  logoUrl          String?      @map("logo_url") @db.VarChar(255)
+  settings         Json         @default("{}")
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  stripeCustomerId String?      @map("stripe_customer_id") @db.VarChar(255)
+  monthlyRevenue   Decimal      @default(0) @map("monthly_revenue") @db.Decimal(10, 2)
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   users User[]
 
@@ -314,26 +322,53 @@ model FeatureFlag {
   @@map("feature_flags")
 }
 
+// A generic sales-pipeline card, shared across every vertical rather than
+// duplicated per module (hotel_leads, student_leads, ...) - the pipeline
+// mechanics (stage, drag-and-drop, contact/value fields) are identical
+// regardless of industry; only what a "lead" represents changes (a group
+// booking inquiry vs. a prospective enrollment vs. a referral vs. a
+// catering booking), which `module` tags rather than forking the schema.
+model Lead {
+  id               String     @id @default(uuid()) @db.Uuid
+  tenantId         String     @map("tenant_id") @db.Uuid
+  module           ModuleName
+  title            String     @db.VarChar(255)
+  contactName      String?    @map("contact_name") @db.VarChar(255)
+  contactEmail     String?    @map("contact_email") @db.VarChar(255)
+  contactPhone     String?    @map("contact_phone") @db.VarChar(20)
+  estimatedValue   Decimal?   @map("estimated_value") @db.Decimal(10, 2)
+  stage            LeadStage  @default(new)
+  source           String?    @db.VarChar(255)
+  notes            String?
+  assignedToUserId String?    @map("assigned_to_user_id") @db.Uuid
+  position         Int        @default(0)
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  @@index([tenantId, module])
+  @@map("leads")
+}
+
 // ============================================================
 // HOTEL MODULE
 // ============================================================
 
 model HotelGuest {
-  id            String    @id @default(uuid()) @db.Uuid
-  tenantId      String    @map("tenant_id") @db.Uuid
-  firstName     String    @map("first_name") @db.VarChar(255)
-  lastName      String    @map("last_name") @db.VarChar(255)
-  email         String?   @db.VarChar(255)
-  phone         String?   @db.VarChar(20)
-  address       String?
-  city          String?   @db.VarChar(255)
-  country       String?   @db.VarChar(255)
-  checkInDate   DateTime? @map("check_in_date") @db.Date
-  checkOutDate  DateTime? @map("check_out_date") @db.Date
-  notes         String?
-  vip           Boolean   @default(false)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  firstName    String    @map("first_name") @db.VarChar(255)
+  lastName     String    @map("last_name") @db.VarChar(255)
+  email        String?   @db.VarChar(255)
+  phone        String?   @db.VarChar(20)
+  address      String?
+  city         String?   @db.VarChar(255)
+  country      String?   @db.VarChar(255)
+  checkInDate  DateTime? @map("check_in_date") @db.Date
+  checkOutDate DateTime? @map("check_out_date") @db.Date
+  notes        String?
+  vip          Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   reservations HotelReservation[]
   invoices     HotelInvoice[]
@@ -358,29 +393,29 @@ model HotelRoom {
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
-  occupiedByGuest       HotelGuest?               @relation(fields: [occupiedByGuestId], references: [id], onDelete: SetNull)
-  reservations          HotelReservation[]
-  staffAssignments      HotelStaffAssignment[]
-  maintenanceRequests   HotelMaintenanceRequest[]
+  occupiedByGuest     HotelGuest?               @relation(fields: [occupiedByGuestId], references: [id], onDelete: SetNull)
+  reservations        HotelReservation[]
+  staffAssignments    HotelStaffAssignment[]
+  maintenanceRequests HotelMaintenanceRequest[]
 
   @@index([tenantId])
   @@map("hotel_rooms")
 }
 
 model HotelReservation {
-  id              String        @id @default(uuid()) @db.Uuid
-  tenantId        String        @map("tenant_id") @db.Uuid
-  guestId         String        @map("guest_id") @db.Uuid
-  roomId          String        @map("room_id") @db.Uuid
-  checkIn         DateTime      @map("check_in") @db.Date
-  checkOut        DateTime      @map("check_out") @db.Date
-  numberOfNights  Int?          @map("number_of_nights")
-  totalPrice      Decimal       @map("total_price") @db.Decimal(10, 2)
-  paymentStatus   PaymentStatus @default(pending) @map("payment_status")
-  paymentMethod   String?       @map("payment_method") @db.VarChar(100)
-  notes           String?
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @map("tenant_id") @db.Uuid
+  guestId        String        @map("guest_id") @db.Uuid
+  roomId         String        @map("room_id") @db.Uuid
+  checkIn        DateTime      @map("check_in") @db.Date
+  checkOut       DateTime      @map("check_out") @db.Date
+  numberOfNights Int?          @map("number_of_nights")
+  totalPrice     Decimal       @map("total_price") @db.Decimal(10, 2)
+  paymentStatus  PaymentStatus @default(pending) @map("payment_status")
+  paymentMethod  String?       @map("payment_method") @db.VarChar(100)
+  notes          String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
   guest    HotelGuest     @relation(fields: [guestId], references: [id], onDelete: Cascade)
   room     HotelRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
@@ -391,16 +426,16 @@ model HotelReservation {
 }
 
 model HotelStaffAssignment {
-  id             String     @id @default(uuid()) @db.Uuid
-  tenantId       String     @map("tenant_id") @db.Uuid
-  staffUserId    String     @map("staff_user_id") @db.Uuid
-  roomId         String     @map("room_id") @db.Uuid
-  taskType       TaskType   @map("task_type")
-  status         TaskStatus @default(pending)
-  assignedDate   DateTime   @map("assigned_date") @db.Date
-  completedDate  DateTime?  @map("completed_date") @db.Date
-  notes          String?
-  createdAt      DateTime   @default(now()) @map("created_at")
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @map("tenant_id") @db.Uuid
+  staffUserId   String     @map("staff_user_id") @db.Uuid
+  roomId        String     @map("room_id") @db.Uuid
+  taskType      TaskType   @map("task_type")
+  status        TaskStatus @default(pending)
+  assignedDate  DateTime   @map("assigned_date") @db.Date
+  completedDate DateTime?  @map("completed_date") @db.Date
+  notes         String?
+  createdAt     DateTime   @default(now()) @map("created_at")
 
   room HotelRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
@@ -409,16 +444,16 @@ model HotelStaffAssignment {
 }
 
 model HotelMaintenanceRequest {
-  id                 String              @id @default(uuid()) @db.Uuid
-  tenantId           String              @map("tenant_id") @db.Uuid
-  roomId             String              @map("room_id") @db.Uuid
-  issueDescription   String              @map("issue_description")
-  priority           MaintenancePriority @default(medium)
-  status             MaintenanceStatus   @default(open)
-  assignedTo         String?             @map("assigned_to") @db.Uuid
-  createdAt          DateTime            @default(now()) @map("created_at")
-  completedAt        DateTime?           @map("completed_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
+  id               String              @id @default(uuid()) @db.Uuid
+  tenantId         String              @map("tenant_id") @db.Uuid
+  roomId           String              @map("room_id") @db.Uuid
+  issueDescription String              @map("issue_description")
+  priority         MaintenancePriority @default(medium)
+  status           MaintenanceStatus   @default(open)
+  assignedTo       String?             @map("assigned_to") @db.Uuid
+  createdAt        DateTime            @default(now()) @map("created_at")
+  completedAt      DateTime?           @map("completed_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
 
   room HotelRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
@@ -451,22 +486,22 @@ model HotelInvoice {
 // ============================================================
 
 model StudentStudent {
-  id              String        @id @default(uuid()) @db.Uuid
-  tenantId        String        @map("tenant_id") @db.Uuid
-  firstName       String        @map("first_name") @db.VarChar(255)
-  lastName        String        @map("last_name") @db.VarChar(255)
-  email           String?       @db.VarChar(255)
-  phone           String?       @db.VarChar(20)
-  dateOfBirth     DateTime?     @map("date_of_birth") @db.Date
-  gender          String?       @db.VarChar(50)
-  address         String?
-  parentName      String?       @map("parent_name") @db.VarChar(255)
-  parentEmail     String?       @map("parent_email") @db.VarChar(255)
-  parentPhone     String?       @map("parent_phone") @db.VarChar(20)
-  enrollmentDate  DateTime      @map("enrollment_date") @db.Date
-  status          StudentStatus @default(active)
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @map("tenant_id") @db.Uuid
+  firstName      String        @map("first_name") @db.VarChar(255)
+  lastName       String        @map("last_name") @db.VarChar(255)
+  email          String?       @db.VarChar(255)
+  phone          String?       @db.VarChar(20)
+  dateOfBirth    DateTime?     @map("date_of_birth") @db.Date
+  gender         String?       @db.VarChar(50)
+  address        String?
+  parentName     String?       @map("parent_name") @db.VarChar(255)
+  parentEmail    String?       @map("parent_email") @db.VarChar(255)
+  parentPhone    String?       @map("parent_phone") @db.VarChar(20)
+  enrollmentDate DateTime      @map("enrollment_date") @db.Date
+  status         StudentStatus @default(active)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
   enrollments    StudentEnrollment[]
   attendance     StudentAttendance[]
@@ -478,16 +513,16 @@ model StudentStudent {
 }
 
 model StudentInstructor {
-  id              String   @id @default(uuid()) @db.Uuid
-  tenantId        String   @map("tenant_id") @db.Uuid
-  firstName       String   @map("first_name") @db.VarChar(255)
-  lastName        String   @map("last_name") @db.VarChar(255)
-  email           String?  @db.VarChar(255)
-  phone           String?  @db.VarChar(20)
-  specialization  String?  @db.VarChar(255)
-  bio             String?
-  hireDate        DateTime? @map("hire_date") @db.Date
-  createdAt       DateTime @default(now()) @map("created_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  firstName      String    @map("first_name") @db.VarChar(255)
+  lastName       String    @map("last_name") @db.VarChar(255)
+  email          String?   @db.VarChar(255)
+  phone          String?   @db.VarChar(20)
+  specialization String?   @db.VarChar(255)
+  bio            String?
+  hireDate       DateTime? @map("hire_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   classes StudentClass[]
 
@@ -496,20 +531,20 @@ model StudentInstructor {
 }
 
 model StudentClass {
-  id               String      @id @default(uuid()) @db.Uuid
-  tenantId         String      @map("tenant_id") @db.Uuid
-  courseName       String      @map("course_name") @db.VarChar(255)
-  courseCode       String?     @map("course_code") @db.VarChar(50)
-  instructorId     String      @map("instructor_id") @db.Uuid
-  description      String?
-  schedule         Json?
-  capacity         Int
-  enrolledCount    Int         @default(0) @map("enrolled_count")
-  pricePerCourse   Decimal?    @map("price_per_course") @db.Decimal(10, 2)
-  startDate        DateTime?   @map("start_date") @db.Date
-  endDate          DateTime?   @map("end_date") @db.Date
-  status           ClassStatus @default(active)
-  createdAt        DateTime    @default(now()) @map("created_at")
+  id             String      @id @default(uuid()) @db.Uuid
+  tenantId       String      @map("tenant_id") @db.Uuid
+  courseName     String      @map("course_name") @db.VarChar(255)
+  courseCode     String?     @map("course_code") @db.VarChar(50)
+  instructorId   String      @map("instructor_id") @db.Uuid
+  description    String?
+  schedule       Json?
+  capacity       Int
+  enrolledCount  Int         @default(0) @map("enrolled_count")
+  pricePerCourse Decimal?    @map("price_per_course") @db.Decimal(10, 2)
+  startDate      DateTime?   @map("start_date") @db.Date
+  endDate        DateTime?   @map("end_date") @db.Date
+  status         ClassStatus @default(active)
+  createdAt      DateTime    @default(now()) @map("created_at")
 
   instructor     StudentInstructor      @relation(fields: [instructorId], references: [id], onDelete: Restrict)
   enrollments    StudentEnrollment[]
@@ -523,14 +558,14 @@ model StudentClass {
 }
 
 model StudentEnrollment {
-  id                  String            @id @default(uuid()) @db.Uuid
-  tenantId            String            @map("tenant_id") @db.Uuid
-  studentId           String            @map("student_id") @db.Uuid
-  classId             String            @map("class_id") @db.Uuid
-  enrollmentDate      DateTime          @map("enrollment_date") @db.Date
-  status              EnrollmentStatus  @default(active)
-  progressPercentage  Int               @default(0) @map("progress_percentage")
-  createdAt           DateTime          @default(now()) @map("created_at")
+  id                 String           @id @default(uuid()) @db.Uuid
+  tenantId           String           @map("tenant_id") @db.Uuid
+  studentId          String           @map("student_id") @db.Uuid
+  classId            String           @map("class_id") @db.Uuid
+  enrollmentDate     DateTime         @map("enrollment_date") @db.Date
+  status             EnrollmentStatus @default(active)
+  progressPercentage Int              @default(0) @map("progress_percentage")
+  createdAt          DateTime         @default(now()) @map("created_at")
 
   student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class   StudentClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
@@ -540,14 +575,14 @@ model StudentEnrollment {
 }
 
 model StudentAttendance {
-  id              String   @id @default(uuid()) @db.Uuid
-  tenantId        String   @map("tenant_id") @db.Uuid
-  studentId       String   @map("student_id") @db.Uuid
-  classId         String   @map("class_id") @db.Uuid
-  attendanceDate  DateTime @map("attendance_date") @db.Date
-  present         Boolean
-  notes           String?
-  createdAt       DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  classId        String   @map("class_id") @db.Uuid
+  attendanceDate DateTime @map("attendance_date") @db.Date
+  present        Boolean
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
 
   student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class   StudentClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
@@ -557,17 +592,17 @@ model StudentAttendance {
 }
 
 model StudentGrade {
-  id              String   @id @default(uuid()) @db.Uuid
-  tenantId        String   @map("tenant_id") @db.Uuid
-  studentId       String   @map("student_id") @db.Uuid
-  classId         String   @map("class_id") @db.Uuid
-  assignmentName  String?  @map("assignment_name") @db.VarChar(255)
-  score           Decimal  @db.Decimal(5, 2)
-  maxScore        Decimal  @map("max_score") @db.Decimal(5, 2)
-  weight          Int      @default(100)
-  submittedDate   DateTime? @map("submitted_date") @db.Date
-  comments        String?
-  createdAt       DateTime @default(now()) @map("created_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  classId        String    @map("class_id") @db.Uuid
+  assignmentName String?   @map("assignment_name") @db.VarChar(255)
+  score          Decimal   @db.Decimal(5, 2)
+  maxScore       Decimal   @map("max_score") @db.Decimal(5, 2)
+  weight         Int       @default(100)
+  submittedDate  DateTime? @map("submitted_date") @db.Date
+  comments       String?
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class   StudentClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
@@ -577,18 +612,18 @@ model StudentGrade {
 }
 
 model StudentTuitionRecord {
-  id             String        @id @default(uuid()) @db.Uuid
-  tenantId       String        @map("tenant_id") @db.Uuid
-  studentId      String        @map("student_id") @db.Uuid
-  classId        String        @map("class_id") @db.Uuid
-  amountDue      Decimal       @map("amount_due") @db.Decimal(10, 2)
-  amountPaid     Decimal       @default(0) @map("amount_paid") @db.Decimal(10, 2)
-  dueDate        DateTime      @map("due_date") @db.Date
-  paidDate       DateTime?     @map("paid_date") @db.Date
-  paymentMethod  String?       @map("payment_method") @db.VarChar(100)
-  status         TuitionStatus @default(pending)
-  notes          String?
-  createdAt      DateTime      @default(now()) @map("created_at")
+  id            String        @id @default(uuid()) @db.Uuid
+  tenantId      String        @map("tenant_id") @db.Uuid
+  studentId     String        @map("student_id") @db.Uuid
+  classId       String        @map("class_id") @db.Uuid
+  amountDue     Decimal       @map("amount_due") @db.Decimal(10, 2)
+  amountPaid    Decimal       @default(0) @map("amount_paid") @db.Decimal(10, 2)
+  dueDate       DateTime      @map("due_date") @db.Date
+  paidDate      DateTime?     @map("paid_date") @db.Date
+  paymentMethod String?       @map("payment_method") @db.VarChar(100)
+  status        TuitionStatus @default(pending)
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
 
   student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class   StudentClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
@@ -598,14 +633,14 @@ model StudentTuitionRecord {
 }
 
 model StudentAnnouncement {
-  id             String               @id @default(uuid()) @db.Uuid
-  tenantId       String               @map("tenant_id") @db.Uuid
-  title          String               @db.VarChar(255)
-  content        String
-  audienceType   AnnouncementAudience @map("audience_type")
-  targetClassId  String?              @map("target_class_id") @db.Uuid
-  createdBy      String               @map("created_by") @db.Uuid
-  createdAt      DateTime             @default(now()) @map("created_at")
+  id            String               @id @default(uuid()) @db.Uuid
+  tenantId      String               @map("tenant_id") @db.Uuid
+  title         String               @db.VarChar(255)
+  content       String
+  audienceType  AnnouncementAudience @map("audience_type")
+  targetClassId String?              @map("target_class_id") @db.Uuid
+  createdBy     String               @map("created_by") @db.Uuid
+  createdAt     DateTime             @default(now()) @map("created_at")
 
   targetClass StudentClass? @relation(fields: [targetClassId], references: [id], onDelete: SetNull)
 
@@ -618,49 +653,49 @@ model StudentAnnouncement {
 // ============================================================
 
 model PatientPatient {
-  id                       String    @id @default(uuid()) @db.Uuid
-  tenantId                 String    @map("tenant_id") @db.Uuid
-  firstName                String    @map("first_name") @db.VarChar(255)
-  lastName                 String    @map("last_name") @db.VarChar(255)
-  email                    String?   @db.VarChar(255)
-  phone                    String?   @db.VarChar(20)
-  dateOfBirth              DateTime  @map("date_of_birth") @db.Date
-  gender                   String?   @db.VarChar(50)
-  address                  String?
-  city                     String?   @db.VarChar(255)
-  country                  String?   @db.VarChar(255)
-  emergencyContactName     String?   @map("emergency_contact_name") @db.VarChar(255)
-  emergencyContactPhone    String?   @map("emergency_contact_phone") @db.VarChar(20)
-  medicalHistorySummary    String?   @map("medical_history_summary")
-  allergies                String[]  @default([])
-  chronicConditions        String[]  @default([]) @map("chronic_conditions")
-  bloodType                String?   @map("blood_type") @db.VarChar(10)
-  createdAt                DateTime  @default(now()) @map("created_at")
-  updatedAt                DateTime  @updatedAt @map("updated_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  tenantId              String   @map("tenant_id") @db.Uuid
+  firstName             String   @map("first_name") @db.VarChar(255)
+  lastName              String   @map("last_name") @db.VarChar(255)
+  email                 String?  @db.VarChar(255)
+  phone                 String?  @db.VarChar(20)
+  dateOfBirth           DateTime @map("date_of_birth") @db.Date
+  gender                String?  @db.VarChar(50)
+  address               String?
+  city                  String?  @db.VarChar(255)
+  country               String?  @db.VarChar(255)
+  emergencyContactName  String?  @map("emergency_contact_name") @db.VarChar(255)
+  emergencyContactPhone String?  @map("emergency_contact_phone") @db.VarChar(20)
+  medicalHistorySummary String?  @map("medical_history_summary")
+  allergies             String[] @default([])
+  chronicConditions     String[] @default([]) @map("chronic_conditions")
+  bloodType             String?  @map("blood_type") @db.VarChar(10)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
-  appointments    PatientAppointment[]
-  medicalRecords  PatientMedicalRecord[]
-  prescriptions   PatientPrescription[]
-  vitalSigns      PatientVitalSign[]
-  labResults      PatientLabResult[]
-  insurance       PatientInsurance[]
-  billing         PatientBilling[]
+  appointments   PatientAppointment[]
+  medicalRecords PatientMedicalRecord[]
+  prescriptions  PatientPrescription[]
+  vitalSigns     PatientVitalSign[]
+  labResults     PatientLabResult[]
+  insurance      PatientInsurance[]
+  billing        PatientBilling[]
 
   @@index([tenantId])
   @@map("patient_patients")
 }
 
 model PatientProvider {
-  id              String   @id @default(uuid()) @db.Uuid
-  tenantId        String   @map("tenant_id") @db.Uuid
-  firstName       String   @map("first_name") @db.VarChar(255)
-  lastName        String   @map("last_name") @db.VarChar(255)
-  email           String?  @db.VarChar(255)
-  phone           String?  @db.VarChar(20)
-  specialization  String?  @db.VarChar(255)
-  licenseNumber   String?  @map("license_number") @db.VarChar(100)
-  bio             String?
-  createdAt       DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  firstName      String   @map("first_name") @db.VarChar(255)
+  lastName       String   @map("last_name") @db.VarChar(255)
+  email          String?  @db.VarChar(255)
+  phone          String?  @db.VarChar(20)
+  specialization String?  @db.VarChar(255)
+  licenseNumber  String?  @map("license_number") @db.VarChar(100)
+  bio            String?
+  createdAt      DateTime @default(now()) @map("created_at")
 
   appointments   PatientAppointment[]
   medicalRecords PatientMedicalRecord[]
@@ -671,21 +706,21 @@ model PatientProvider {
 }
 
 model PatientAppointment {
-  id                    String             @id @default(uuid()) @db.Uuid
-  tenantId              String             @map("tenant_id") @db.Uuid
-  patientId             String             @map("patient_id") @db.Uuid
-  providerId            String             @map("provider_id") @db.Uuid
-  appointmentDatetime   DateTime           @map("appointment_datetime")
-  durationMinutes       Int                @default(30) @map("duration_minutes")
-  reasonForVisit        String?            @map("reason_for_visit") @db.VarChar(255)
-  status                AppointmentStatus  @default(scheduled)
-  notes                 String?
-  reminderSent          Boolean            @default(false) @map("reminder_sent")
-  reminderSentAt        DateTime?          @map("reminder_sent_at")
-  createdAt             DateTime           @default(now()) @map("created_at")
+  id                  String            @id @default(uuid()) @db.Uuid
+  tenantId            String            @map("tenant_id") @db.Uuid
+  patientId           String            @map("patient_id") @db.Uuid
+  providerId          String            @map("provider_id") @db.Uuid
+  appointmentDatetime DateTime          @map("appointment_datetime")
+  durationMinutes     Int               @default(30) @map("duration_minutes")
+  reasonForVisit      String?           @map("reason_for_visit") @db.VarChar(255)
+  status              AppointmentStatus @default(scheduled)
+  notes               String?
+  reminderSent        Boolean           @default(false) @map("reminder_sent")
+  reminderSentAt      DateTime?         @map("reminder_sent_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
 
-  patient  PatientPatient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  provider PatientProvider   @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  patient  PatientPatient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider PatientProvider  @relation(fields: [providerId], references: [id], onDelete: Restrict)
   billing  PatientBilling[]
 
   @@index([tenantId])
@@ -693,19 +728,19 @@ model PatientAppointment {
 }
 
 model PatientMedicalRecord {
-  id                     String    @id @default(uuid()) @db.Uuid
-  tenantId               String    @map("tenant_id") @db.Uuid
-  patientId              String    @map("patient_id") @db.Uuid
-  visitDate              DateTime  @map("visit_date") @db.Date
-  chiefComplaint         String?   @map("chief_complaint")
-  examinationFindings    String?   @map("examination_findings")
-  diagnosis              String?
-  treatmentPlan          String?   @map("treatment_plan")
-  providerId             String    @map("provider_id") @db.Uuid
-  followUpDate           DateTime? @map("follow_up_date") @db.Date
-  notes                  String?
-  createdAt              DateTime  @default(now()) @map("created_at")
-  updatedAt              DateTime  @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid()) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  patientId           String    @map("patient_id") @db.Uuid
+  visitDate           DateTime  @map("visit_date") @db.Date
+  chiefComplaint      String?   @map("chief_complaint")
+  examinationFindings String?   @map("examination_findings")
+  diagnosis           String?
+  treatmentPlan       String?   @map("treatment_plan")
+  providerId          String    @map("provider_id") @db.Uuid
+  followUpDate        DateTime? @map("follow_up_date") @db.Date
+  notes               String?
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   patient  PatientPatient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   provider PatientProvider @relation(fields: [providerId], references: [id], onDelete: Restrict)
@@ -715,18 +750,18 @@ model PatientMedicalRecord {
 }
 
 model PatientPrescription {
-  id                       String                 @id @default(uuid()) @db.Uuid
-  tenantId                 String                 @map("tenant_id") @db.Uuid
-  patientId                String                 @map("patient_id") @db.Uuid
-  medicationName           String                 @map("medication_name") @db.VarChar(255)
-  dosage                   String                 @db.VarChar(100)
-  frequency                PrescriptionFrequency
-  startDate                DateTime               @map("start_date") @db.Date
-  endDate                  DateTime?              @map("end_date") @db.Date
-  refillsRemaining         Int                    @default(0) @map("refills_remaining")
-  specialInstructions      String?                @map("special_instructions")
-  prescribingProviderId    String                 @map("prescribing_provider_id") @db.Uuid
-  createdAt                DateTime               @default(now()) @map("created_at")
+  id                    String                @id @default(uuid()) @db.Uuid
+  tenantId              String                @map("tenant_id") @db.Uuid
+  patientId             String                @map("patient_id") @db.Uuid
+  medicationName        String                @map("medication_name") @db.VarChar(255)
+  dosage                String                @db.VarChar(100)
+  frequency             PrescriptionFrequency
+  startDate             DateTime              @map("start_date") @db.Date
+  endDate               DateTime?             @map("end_date") @db.Date
+  refillsRemaining      Int                   @default(0) @map("refills_remaining")
+  specialInstructions   String?               @map("special_instructions")
+  prescribingProviderId String                @map("prescribing_provider_id") @db.Uuid
+  createdAt             DateTime              @default(now()) @map("created_at")
 
   patient             PatientPatient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   prescribingProvider PatientProvider @relation(fields: [prescribingProviderId], references: [id], onDelete: Restrict)
@@ -736,18 +771,18 @@ model PatientPrescription {
 }
 
 model PatientVitalSign {
-  id          String   @id @default(uuid()) @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
-  patientId   String   @map("patient_id") @db.Uuid
-  visitDate   DateTime @map("visit_date") @db.Date
-  bloodPressure String? @map("blood_pressure") @db.VarChar(20)
-  heartRate   Int?     @map("heart_rate")
-  temperature Decimal? @db.Decimal(4, 1)
-  weight      Decimal? @db.Decimal(6, 2)
-  height      Decimal? @db.Decimal(5, 2)
-  bmi         Decimal? @db.Decimal(5, 2)
-  notes       String?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  patientId     String   @map("patient_id") @db.Uuid
+  visitDate     DateTime @map("visit_date") @db.Date
+  bloodPressure String?  @map("blood_pressure") @db.VarChar(20)
+  heartRate     Int?     @map("heart_rate")
+  temperature   Decimal? @db.Decimal(4, 1)
+  weight        Decimal? @db.Decimal(6, 2)
+  height        Decimal? @db.Decimal(5, 2)
+  bmi           Decimal? @db.Decimal(5, 2)
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
 
   patient PatientPatient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -775,15 +810,15 @@ model PatientLabResult {
 }
 
 model PatientInsurance {
-  id              String    @id @default(uuid()) @db.Uuid
-  tenantId        String    @map("tenant_id") @db.Uuid
-  patientId       String    @map("patient_id") @db.Uuid
-  providerName    String?   @map("provider_name") @db.VarChar(255)
-  policyNumber    String?   @map("policy_number") @db.VarChar(255)
-  groupNumber     String?   @map("group_number") @db.VarChar(255)
-  effectiveDate   DateTime? @map("effective_date") @db.Date
-  expirationDate  DateTime? @map("expiration_date") @db.Date
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  providerName   String?   @map("provider_name") @db.VarChar(255)
+  policyNumber   String?   @map("policy_number") @db.VarChar(255)
+  groupNumber    String?   @map("group_number") @db.VarChar(255)
+  effectiveDate  DateTime? @map("effective_date") @db.Date
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   patient PatientPatient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -792,16 +827,16 @@ model PatientInsurance {
 }
 
 model PatientBilling {
-  id                      String      @id @default(uuid()) @db.Uuid
-  tenantId                String      @map("tenant_id") @db.Uuid
-  patientId               String      @map("patient_id") @db.Uuid
-  appointmentId           String?     @map("appointment_id") @db.Uuid
-  amountCharged           Decimal     @map("amount_charged") @db.Decimal(10, 2)
-  insuranceClaimStatus    ClaimStatus @default(pending) @map("insurance_claim_status")
-  patientResponsibility   Decimal?    @map("patient_responsibility") @db.Decimal(10, 2)
-  paidDate                DateTime?   @map("paid_date") @db.Date
-  paymentMethod           String?     @map("payment_method") @db.VarChar(100)
-  createdAt                DateTime    @default(now()) @map("created_at")
+  id                    String      @id @default(uuid()) @db.Uuid
+  tenantId              String      @map("tenant_id") @db.Uuid
+  patientId             String      @map("patient_id") @db.Uuid
+  appointmentId         String?     @map("appointment_id") @db.Uuid
+  amountCharged         Decimal     @map("amount_charged") @db.Decimal(10, 2)
+  insuranceClaimStatus  ClaimStatus @default(pending) @map("insurance_claim_status")
+  patientResponsibility Decimal?    @map("patient_responsibility") @db.Decimal(10, 2)
+  paidDate              DateTime?   @map("paid_date") @db.Date
+  paymentMethod         String?     @map("payment_method") @db.VarChar(100)
+  createdAt             DateTime    @default(now()) @map("created_at")
 
   patient     PatientPatient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
   appointment PatientAppointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
@@ -815,18 +850,18 @@ model PatientBilling {
 // ============================================================
 
 model RestaurantMenuItem {
-  id               String       @id @default(uuid()) @db.Uuid
-  tenantId         String       @map("tenant_id") @db.Uuid
-  name             String       @db.VarChar(255)
-  description      String?
-  price            Decimal      @db.Decimal(10, 2)
-  category         MenuCategory
-  imageUrl         String?      @map("image_url") @db.VarChar(255)
-  available        Boolean      @default(true)
-  prepTimeMinutes  Int?         @map("prep_time_minutes")
-  calories         Int?
-  dietaryTags      String[]     @default([]) @map("dietary_tags")
-  createdAt        DateTime     @default(now()) @map("created_at")
+  id              String       @id @default(uuid()) @db.Uuid
+  tenantId        String       @map("tenant_id") @db.Uuid
+  name            String       @db.VarChar(255)
+  description     String?
+  price           Decimal      @db.Decimal(10, 2)
+  category        MenuCategory
+  imageUrl        String?      @map("image_url") @db.VarChar(255)
+  available       Boolean      @default(true)
+  prepTimeMinutes Int?         @map("prep_time_minutes")
+  calories        Int?
+  dietaryTags     String[]     @default([]) @map("dietary_tags")
+  createdAt       DateTime     @default(now()) @map("created_at")
 
   orderItems RestaurantOrderItem[]
 
@@ -835,22 +870,22 @@ model RestaurantMenuItem {
 }
 
 model RestaurantOrder {
-  id             String      @id @default(uuid()) @db.Uuid
-  tenantId       String      @map("tenant_id") @db.Uuid
-  orderNumber    String      @unique @map("order_number") @db.VarChar(50)
-  tableId        String?     @map("table_id") @db.Uuid
-  customerId     String?     @map("customer_id") @db.Uuid
-  status         OrderStatus @default(pending)
-  itemsCount     Int?        @map("items_count")
-  subtotal       Decimal?    @db.Decimal(10, 2)
-  tax            Decimal?    @db.Decimal(10, 2)
-  totalAmount    Decimal?    @map("total_amount") @db.Decimal(10, 2)
-  orderTime      DateTime    @default(now()) @map("order_time")
-  servedTime     DateTime?   @map("served_time")
-  completedTime  DateTime?   @map("completed_time")
-  paymentMethod  String?     @map("payment_method") @db.VarChar(100)
-  notes          String?
-  createdAt      DateTime    @default(now()) @map("created_at")
+  id            String      @id @default(uuid()) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  orderNumber   String      @unique @map("order_number") @db.VarChar(50)
+  tableId       String?     @map("table_id") @db.Uuid
+  customerId    String?     @map("customer_id") @db.Uuid
+  status        OrderStatus @default(pending)
+  itemsCount    Int?        @map("items_count")
+  subtotal      Decimal?    @db.Decimal(10, 2)
+  tax           Decimal?    @db.Decimal(10, 2)
+  totalAmount   Decimal?    @map("total_amount") @db.Decimal(10, 2)
+  orderTime     DateTime    @default(now()) @map("order_time")
+  servedTime    DateTime?   @map("served_time")
+  completedTime DateTime?   @map("completed_time")
+  paymentMethod String?     @map("payment_method") @db.VarChar(100)
+  notes         String?
+  createdAt     DateTime    @default(now()) @map("created_at")
 
   table    RestaurantTable?      @relation("TableOrders", fields: [tableId], references: [id], onDelete: SetNull)
   customer RestaurantCustomer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -861,70 +896,70 @@ model RestaurantOrder {
 }
 
 model RestaurantOrderItem {
-  id               String          @id @default(uuid()) @db.Uuid
-  tenantId         String          @map("tenant_id") @db.Uuid
-  orderId          String          @map("order_id") @db.Uuid
-  menuItemId       String          @map("menu_item_id") @db.Uuid
-  quantity         Int
-  specialRequests  String?         @map("special_requests")
-  status           OrderItemStatus @default(pending)
-  createdAt        DateTime        @default(now()) @map("created_at")
+  id              String          @id @default(uuid()) @db.Uuid
+  tenantId        String          @map("tenant_id") @db.Uuid
+  orderId         String          @map("order_id") @db.Uuid
+  menuItemId      String          @map("menu_item_id") @db.Uuid
+  quantity        Int
+  specialRequests String?         @map("special_requests")
+  status          OrderItemStatus @default(pending)
+  createdAt       DateTime        @default(now()) @map("created_at")
 
-  order    RestaurantOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItem RestaurantMenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  order    RestaurantOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem RestaurantMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
   @@map("restaurant_order_items")
 }
 
 model RestaurantCustomer {
-  id             String    @id @default(uuid()) @db.Uuid
-  tenantId       String    @map("tenant_id") @db.Uuid
-  name           String    @db.VarChar(255)
-  phone          String?   @db.VarChar(20)
-  email          String?   @db.VarChar(255)
-  totalSpent     Decimal   @default(0) @map("total_spent") @db.Decimal(10, 2)
-  visitCount     Int       @default(0) @map("visit_count")
-  lastVisit      DateTime? @map("last_visit")
-  preferences    String?
-  loyaltyPoints  Int       @default(0) @map("loyalty_points")
-  createdAt      DateTime  @default(now()) @map("created_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  name          String    @db.VarChar(255)
+  phone         String?   @db.VarChar(20)
+  email         String?   @db.VarChar(255)
+  totalSpent    Decimal   @default(0) @map("total_spent") @db.Decimal(10, 2)
+  visitCount    Int       @default(0) @map("visit_count")
+  lastVisit     DateTime? @map("last_visit")
+  preferences   String?
+  loyaltyPoints Int       @default(0) @map("loyalty_points")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
-  orders        RestaurantOrder[]
-  reservations  RestaurantReservation[]
+  orders       RestaurantOrder[]
+  reservations RestaurantReservation[]
 
   @@index([tenantId])
   @@map("restaurant_customers")
 }
 
 model RestaurantStaffShift {
-  id             String      @id @default(uuid()) @db.Uuid
-  tenantId       String      @map("tenant_id") @db.Uuid
-  staffUserId    String      @map("staff_user_id") @db.Uuid
-  shiftDate      DateTime    @map("shift_date") @db.Date
-  startTime      DateTime    @map("start_time") @db.Time
-  endTime        DateTime    @map("end_time") @db.Time
-  role           ShiftRole
-  status         ShiftStatus @default(scheduled)
-  checkedInAt    DateTime?   @map("checked_in_at")
-  checkedOutAt   DateTime?   @map("checked_out_at")
-  createdAt      DateTime    @default(now()) @map("created_at")
+  id           String      @id @default(uuid()) @db.Uuid
+  tenantId     String      @map("tenant_id") @db.Uuid
+  staffUserId  String      @map("staff_user_id") @db.Uuid
+  shiftDate    DateTime    @map("shift_date") @db.Date
+  startTime    DateTime    @map("start_time") @db.Time
+  endTime      DateTime    @map("end_time") @db.Time
+  role         ShiftRole
+  status       ShiftStatus @default(scheduled)
+  checkedInAt  DateTime?   @map("checked_in_at")
+  checkedOutAt DateTime?   @map("checked_out_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
 
   @@index([tenantId])
   @@map("restaurant_staff_shifts")
 }
 
 model RestaurantInventory {
-  id              String    @id @default(uuid()) @db.Uuid
-  tenantId        String    @map("tenant_id") @db.Uuid
-  name            String    @db.VarChar(255)
-  quantity        Decimal   @db.Decimal(10, 2)
-  unit            InventoryUnit
-  reorderLevel    Decimal?  @map("reorder_level") @db.Decimal(10, 2)
-  costPerUnit     Decimal?  @map("cost_per_unit") @db.Decimal(10, 2)
-  supplierId      String?   @map("supplier_id") @db.Uuid
-  lastRestocked   DateTime? @map("last_restocked")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id            String        @id @default(uuid()) @db.Uuid
+  tenantId      String        @map("tenant_id") @db.Uuid
+  name          String        @db.VarChar(255)
+  quantity      Decimal       @db.Decimal(10, 2)
+  unit          InventoryUnit
+  reorderLevel  Decimal?      @map("reorder_level") @db.Decimal(10, 2)
+  costPerUnit   Decimal?      @map("cost_per_unit") @db.Decimal(10, 2)
+  supplierId    String?       @map("supplier_id") @db.Uuid
+  lastRestocked DateTime?     @map("last_restocked")
+  createdAt     DateTime      @default(now()) @map("created_at")
 
   logs RestaurantInventoryLog[]
 
@@ -933,13 +968,13 @@ model RestaurantInventory {
 }
 
 model RestaurantInventoryLog {
-  id              String           @id @default(uuid()) @db.Uuid
-  tenantId        String           @map("tenant_id") @db.Uuid
-  itemId          String           @map("item_id") @db.Uuid
-  changeQuantity  Decimal          @map("change_quantity") @db.Decimal(10, 2)
-  reason          InventoryReason
-  changedBy       String           @map("changed_by") @db.Uuid
-  changedAt       DateTime         @default(now()) @map("changed_at")
+  id             String          @id @default(uuid()) @db.Uuid
+  tenantId       String          @map("tenant_id") @db.Uuid
+  itemId         String          @map("item_id") @db.Uuid
+  changeQuantity Decimal         @map("change_quantity") @db.Decimal(10, 2)
+  reason         InventoryReason
+  changedBy      String          @map("changed_by") @db.Uuid
+  changedAt      DateTime        @default(now()) @map("changed_at")
 
   item RestaurantInventory @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
@@ -948,13 +983,13 @@ model RestaurantInventoryLog {
 }
 
 model RestaurantTable {
-  id              String      @id @default(uuid()) @db.Uuid
-  tenantId        String      @map("tenant_id") @db.Uuid
-  tableNumber     String      @map("table_number") @db.VarChar(50)
-  capacity        Int
-  status          TableStatus @default(vacant)
-  currentOrderId  String?     @map("current_order_id") @db.Uuid
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id             String      @id @default(uuid()) @db.Uuid
+  tenantId       String      @map("tenant_id") @db.Uuid
+  tableNumber    String      @map("table_number") @db.VarChar(50)
+  capacity       Int
+  status         TableStatus @default(vacant)
+  currentOrderId String?     @map("current_order_id") @db.Uuid
+  createdAt      DateTime    @default(now()) @map("created_at")
 
   orders       RestaurantOrder[]       @relation("TableOrders")
   reservations RestaurantReservation[]
@@ -964,16 +999,16 @@ model RestaurantTable {
 }
 
 model RestaurantReservation {
-  id                  String             @id @default(uuid()) @db.Uuid
-  tenantId            String             @map("tenant_id") @db.Uuid
-  customerId          String             @map("customer_id") @db.Uuid
-  reservationDate     DateTime           @map("reservation_date") @db.Date
-  reservationTime     DateTime           @map("reservation_time") @db.Time
-  partySize           Int                @map("party_size")
-  tableId             String?            @map("table_id") @db.Uuid
-  status              ReservationStatus  @default(confirmed)
-  notes               String?
-  createdAt           DateTime           @default(now()) @map("created_at")
+  id              String            @id @default(uuid()) @db.Uuid
+  tenantId        String            @map("tenant_id") @db.Uuid
+  customerId      String            @map("customer_id") @db.Uuid
+  reservationDate DateTime          @map("reservation_date") @db.Date
+  reservationTime DateTime          @map("reservation_time") @db.Time
+  partySize       Int               @map("party_size")
+  tableId         String?           @map("table_id") @db.Uuid
+  status          ReservationStatus @default(confirmed)
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at")
 
   customer RestaurantCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   table    RestaurantTable?   @relation(fields: [tableId], references: [id], onDelete: SetNull)

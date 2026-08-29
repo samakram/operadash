@@ -11,6 +11,7 @@ import { Modal } from "@/components/Common/Modal";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
 import { EntityCrudPage } from "@/components/Common/EntityCrudPage";
+import { LeadsBoard } from "@/components/Common/LeadsBoard";
 
 // ============================================================
 // Shared types / constants
@@ -839,6 +840,7 @@ const TABS = [
   { to: "inventory", label: "Inventory" },
   { to: "tables", label: "Tables" },
   { to: "reservations", label: "Reservations" },
+  { to: "pipeline", label: "Pipeline" },
 ];
 
 function RestaurantTabBar() {
@@ -896,6 +898,7 @@ export default function RestaurantCRM() {
         <Route path="inventory" element={<InventoryTab />} />
         <Route path="tables" element={<TablesTab />} />
         <Route path="reservations" element={<ReservationsTab />} />
+        <Route path="pipeline" element={<LeadsBoard module="restaurant" label="Restaurant" />} />
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Routes>
     </div>

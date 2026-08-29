@@ -11,12 +11,14 @@ import {
   FlaskConical,
   ShieldCheck,
   Receipt,
+  Kanban,
 } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
 import { EntityCrudPage, type FieldDef } from "@/components/Common/EntityCrudPage";
+import { LeadsBoard } from "@/components/Common/LeadsBoard";
 import type { Column } from "@/components/Common/Table";
 import { cn, formatCurrency, formatDate, formatDateTime, titleCase } from "@/lib/utils";
 
@@ -663,6 +665,7 @@ const TABS = [
   { to: "lab-results", label: "Lab Results", icon: FlaskConical },
   { to: "insurance", label: "Insurance", icon: ShieldCheck },
   { to: "billing", label: "Billing", icon: Receipt },
+  { to: "pipeline", label: "Pipeline", icon: Kanban },
 ];
 
 export default function PatientCRM() {
@@ -704,6 +707,7 @@ export default function PatientCRM() {
         <Route path="lab-results" element={<LabResultsTab />} />
         <Route path="insurance" element={<InsuranceTab />} />
         <Route path="billing" element={<BillingTab />} />
+        <Route path="pipeline" element={<LeadsBoard module="patient" label="Patient" />} />
         <Route path="*" element={<Navigate to="." replace />} />
       </Routes>
     </div>

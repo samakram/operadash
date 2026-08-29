@@ -12,6 +12,7 @@ import {
   DollarSign,
   UserCheck,
   AlertTriangle,
+  Kanban,
 } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
@@ -19,6 +20,7 @@ import { GlassCard } from "@/components/Common/GlassCard";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
 import { EntityCrudPage, type FieldDef } from "@/components/Common/EntityCrudPage";
+import { LeadsBoard } from "@/components/Common/LeadsBoard";
 import type { Column } from "@/components/Common/Table";
 import { cn, formatCurrency, formatDate, titleCase } from "@/lib/utils";
 
@@ -589,6 +591,7 @@ const TABS = [
   { to: "tasks", label: "Staff Tasks", icon: ClipboardList },
   { to: "maintenance", label: "Maintenance", icon: Wrench },
   { to: "invoices", label: "Invoices", icon: Receipt },
+  { to: "pipeline", label: "Pipeline", icon: Kanban },
 ];
 
 export default function HotelCRM() {
@@ -627,6 +630,7 @@ export default function HotelCRM() {
         <Route path="tasks" element={<StaffTasksTab />} />
         <Route path="maintenance" element={<MaintenanceTab />} />
         <Route path="invoices" element={<InvoicesTab />} />
+        <Route path="pipeline" element={<LeadsBoard module="hotel" label="Hotel" />} />
         <Route path="*" element={<Navigate to="." replace />} />
       </Routes>
     </div>
