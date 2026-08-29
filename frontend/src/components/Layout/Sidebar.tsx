@@ -1,48 +1,11 @@
 import { NavLink, useLocation } from "react-router-dom";
-import {
-  LayoutGrid,
-  Building2,
-  Blocks,
-  BarChart3,
-  Settings,
-  Hotel,
-  GraduationCap,
-  Stethoscope,
-  UtensilsCrossed,
-  Users,
-  MessageCircle,
-  X,
-  BedDouble,
-  CalendarCheck,
-  ClipboardList,
-  Wrench,
-  Receipt,
-  Kanban,
-  BookOpen,
-  Megaphone,
-  CalendarClock,
-  Pill,
-  Activity,
-  FlaskConical,
-  ShieldCheck,
-  UserCheck,
-  Archive,
-  Table2,
-  ClipboardCheck,
-  ScrollText,
-  type LucideIcon,
-} from "lucide-react";
+import { LayoutGrid, Building2, Blocks, BarChart3, Settings, Users, MessageCircle, X, ScrollText, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { useSupportBadge } from "@/hooks/useSupportBadge";
+import { MODULE_META, MODULE_FEATURES } from "@/lib/moduleNav";
 import type { ModuleName } from "@/hooks/useTenant";
-
-interface SubNavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-}
 
 interface NavItem {
   to: string;
@@ -52,59 +15,6 @@ interface NavItem {
   /** Set on tenant-module items so NavList can show that module's features nested underneath when active. */
   moduleKey?: ModuleName;
 }
-
-const MODULE_META: Record<ModuleName, { label: string; icon: LucideIcon; to: string }> = {
-  hotel: { label: "Hotel", icon: Hotel, to: "/app/hotel" },
-  student: { label: "Student", icon: GraduationCap, to: "/app/student" },
-  patient: { label: "Patient", icon: Stethoscope, to: "/app/patient" },
-  restaurant: { label: "Restaurant", icon: UtensilsCrossed, to: "/app/restaurant" },
-};
-
-// Mirrors each CRM's own in-page tab bar (see the TABS array in HotelCRM.tsx etc.) —
-// surfaced here too so a tenant's features are reachable from the left panel, not
-// just the in-page tabs.
-const MODULE_FEATURES: Record<ModuleName, SubNavItem[]> = {
-  hotel: [
-    { to: "pipeline", label: "Pipeline", icon: Kanban },
-    { to: "guests", label: "Guests", icon: Users },
-    { to: "rooms", label: "Rooms", icon: BedDouble },
-    { to: "reservations", label: "Reservations", icon: CalendarCheck },
-    { to: "tasks", label: "Staff Tasks", icon: ClipboardList },
-    { to: "maintenance", label: "Maintenance", icon: Wrench },
-    { to: "invoices", label: "Invoices", icon: Receipt },
-  ],
-  student: [
-    { to: "pipeline", label: "Pipeline", icon: Kanban },
-    { to: "students", label: "Students", icon: Users },
-    { to: "classes", label: "Classes", icon: BookOpen },
-    { to: "attendance", label: "Attendance", icon: ClipboardCheck },
-    { to: "grades", label: "Grades", icon: GraduationCap },
-    { to: "tuition", label: "Tuition", icon: Receipt },
-    { to: "announcements", label: "Announcements", icon: Megaphone },
-  ],
-  patient: [
-    { to: "pipeline", label: "Pipeline", icon: Kanban },
-    { to: "patients", label: "Patients", icon: Users },
-    { to: "providers", label: "Providers", icon: Stethoscope },
-    { to: "appointments", label: "Appointments", icon: CalendarClock },
-    { to: "medical-records", label: "Medical Records", icon: ClipboardList },
-    { to: "prescriptions", label: "Prescriptions", icon: Pill },
-    { to: "vitals", label: "Vitals", icon: Activity },
-    { to: "lab-results", label: "Lab Results", icon: FlaskConical },
-    { to: "insurance", label: "Insurance", icon: ShieldCheck },
-    { to: "billing", label: "Billing", icon: Receipt },
-  ],
-  restaurant: [
-    { to: "pipeline", label: "Pipeline", icon: Kanban },
-    { to: "orders", label: "Orders", icon: ClipboardList },
-    { to: "menu", label: "Menu", icon: UtensilsCrossed },
-    { to: "customers", label: "Customers", icon: Users },
-    { to: "staff", label: "Staff", icon: UserCheck },
-    { to: "inventory", label: "Inventory", icon: Archive },
-    { to: "tables", label: "Tables", icon: Table2 },
-    { to: "reservations", label: "Reservations", icon: CalendarCheck },
-  ],
-};
 
 function useNavItems(): NavItem[] {
   const { user } = useAuth();

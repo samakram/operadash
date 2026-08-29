@@ -1,19 +1,9 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Hotel, GraduationCap, Stethoscope, UtensilsCrossed, type LucideIcon } from "lucide-react";
-import { GlassCard } from "@/components/Common/GlassCard";
-import { useAuth } from "@/hooks/useAuth";
-import { useTenant, type ModuleName } from "@/hooks/useTenant";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
-
-const MODULE_META: Record<ModuleName, { label: string; icon: LucideIcon; to: string; description: string }> = {
-  hotel: { label: "Hotel CRM", icon: Hotel, to: "/app/hotel", description: "Guests, rooms, reservations, and housekeeping." },
-  student: { label: "Student CRM", icon: GraduationCap, to: "/app/student", description: "Classes, attendance, grades, and tuition." },
-  patient: { label: "Patient CRM", icon: Stethoscope, to: "/app/patient", description: "Appointments, records, prescriptions, and billing." },
-  restaurant: { label: "Restaurant CRM", icon: UtensilsCrossed, to: "/app/restaurant", description: "Orders, menu, staff, and inventory." },
-};
+import { useTenant } from "@/hooks/useTenant";
+import { MODULE_META, MODULE_FEATURES } from "@/lib/moduleNav";
 
 export default function TenantDashboard() {
-  const { user } = useAuth();
   const { tenant, isLoading } = useTenant();
 
   if (isLoading || !tenant) return <LoadingSpinner fullscreen />;
@@ -21,33 +11,46 @@ export default function TenantDashboard() {
   return (
     <div className="animate-fade-in flex flex-col gap-6">
       <div>
-        <h2>
-          Welcome back{user?.firstName ? `, ${user.firstName}` : ""}
-        </h2>
-        <p className="mt-1 text-sm text-aurora-text/60">Here's what's enabled for {tenant.name}</p>
+        <h2>{tenant.name}</h2>
+        <p className="mt-1 text-sm text-aurora-text/60">Everything enabled for your account</p>
       </div>
 
       {tenant.enabledModules.length === 0 ? (
-        <GlassCard className="py-16 text-center text-aurora-text/50">
+        <div className="rounded-xl border border-aurora-border bg-white py-16 text-center text-aurora-text/50">
           No modules are enabled for your account yet. Contact your platform administrator.
-        </GlassCard>
+        </div>
       ) : (
-        <div className="stagger-children grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="flex flex-col gap-6">
           {tenant.enabledModules.map((moduleName) => {
             const meta = MODULE_META[moduleName];
+            const features = MODULE_FEATURES[moduleName];
             return (
-              <Link key={moduleName} to={meta.to}>
-                <GlassCard interactive className="flex h-full items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-aurora-accent">
-                    <meta.icon size={22} />
+              <div key={moduleName} className="flex flex-col gap-3">
+                <Link to={meta.to} className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-aurora-accent">
+                    <meta.icon size={18} />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-semibold">{meta.label}</p>
-                    <p className="text-sm text-aurora-text/60">{meta.description}</p>
+                  <div>
+                    <h3 className="text-base font-semibold hover:text-aurora-accent">{meta.label}</h3>
+                    <p className="text-xs text-aurora-text/50">{meta.description}</p>
                   </div>
-                  <ArrowRight size={18} className="text-aurora-text/40" />
-                </GlassCard>
-              </Link>
+                </Link>
+
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {features.map((feature) => (
+                    <Link
+                      key={feature.to}
+                      to={`${meta.to}/${feature.to}`}
+                      className="flex flex-col items-start gap-2 rounded-xl border border-aurora-border bg-white p-3 transition hover:border-aurora-accent/40 hover:shadow-glass-hover"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-aurora-accent-soft text-aurora-accent">
+                        <feature.icon size={15} />
+                      </div>
+                      <span className="text-sm font-medium">{feature.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             );
           })}
         </div>
