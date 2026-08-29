@@ -117,7 +117,7 @@ const roomBaseSchema = z.object({
   roomType: roomTypeEnum,
   capacity: z.coerce.number().int().min(1),
   pricePerNight: z.coerce.number().nonnegative(),
-  status: roomStatusEnum.optional(),
+  status: z.preprocess(emptyToUndefined, roomStatusEnum.optional()),
   floorNumber: z.coerce.number().int().optional(),
   amenities: z.array(z.string()).optional(),
   notes: optionalString(),
@@ -186,7 +186,7 @@ const reservationBaseSchema = z.object({
   checkOut: z.coerce.date(),
   numberOfNights: z.coerce.number().int().positive().optional(),
   totalPrice: z.coerce.number().nonnegative().optional(),
-  paymentStatus: paymentStatusEnum.optional(),
+  paymentStatus: z.preprocess(emptyToUndefined, paymentStatusEnum.optional()),
   paymentMethod: optionalString(100),
   notes: optionalString(),
 });
@@ -251,7 +251,7 @@ const taskBaseSchema = z.object({
   staffUserId: z.string().uuid(),
   roomId: z.string().uuid(),
   taskType: taskTypeEnum,
-  status: taskStatusEnum.optional(),
+  status: z.preprocess(emptyToUndefined, taskStatusEnum.optional()),
   assignedDate: z.coerce.date(),
   completedDate: optionalDate(),
   notes: optionalString(),
@@ -316,8 +316,8 @@ router.delete("/tasks/:id", async (req, res, next) => {
 const maintenanceBaseSchema = z.object({
   roomId: z.string().uuid(),
   issueDescription: z.string().min(1),
-  priority: maintenancePriorityEnum.optional(),
-  status: maintenanceStatusEnum.optional(),
+  priority: z.preprocess(emptyToUndefined, maintenancePriorityEnum.optional()),
+  status: z.preprocess(emptyToUndefined, maintenanceStatusEnum.optional()),
   assignedTo: optionalUuid(),
 });
 const createMaintenanceSchema = maintenanceBaseSchema;
@@ -385,7 +385,7 @@ const invoiceBaseSchema = z.object({
   totalAmount: z.coerce.number().nonnegative().optional(),
   paidAt: optionalDate(),
   paymentMethod: optionalString(100),
-  status: invoiceStatusEnum.optional(),
+  status: z.preprocess(emptyToUndefined, invoiceStatusEnum.optional()),
 });
 const createInvoiceSchema = invoiceBaseSchema;
 const updateInvoiceSchema = invoiceBaseSchema.partial();

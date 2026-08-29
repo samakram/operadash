@@ -18,6 +18,11 @@ function toCsvRows(rows: unknown[]): Record<string, unknown>[] {
   return JSON.parse(JSON.stringify(rows)) as Record<string, unknown>[];
 }
 
+/** Treats "" (as sent by untouched optional select/date/text fields in EntityCrudPage) as absent. */
+const emptyToUndefined = (value: unknown): unknown => (value === "" ? undefined : value);
+const optionalEmail = () => z.preprocess(emptyToUndefined, z.string().email().optional());
+const optionalUuid = () => z.preprocess(emptyToUndefined, z.string().uuid().optional());
+
 /**
  * A @db.Time form field round-trips through the client as either a fresh
  * "HH:MM" string (typed into an <input type="time">) or the full ISO
@@ -46,7 +51,7 @@ const timeField = z.string().transform((value, ctx) => {
 const menuCategoryEnum = z.enum(["appetizers", "mains", "desserts", "drinks", "specials"]);
 
 const menuItemQuerySchema = paginationSchema.extend({
-  category: menuCategoryEnum.optional(),
+  category: z.preprocess(emptyToUndefined, menuCategoryEnum.optional()),
   available: z.coerce.boolean().optional(),
 });
 
@@ -123,7 +128,7 @@ const orderStatusEnum = z.enum(["pending", "cooking", "ready", "served", "comple
 const orderItemStatusEnum = z.enum(["pending", "cooking", "ready", "served"]);
 
 const orderQuerySchema = paginationSchema.extend({
-  status: orderStatusEnum.optional(),
+  status: z.preprocess(emptyToUndefined, orderStatusEnum.optional()),
 });
 
 const orderItemInputSchema = z.object({
@@ -140,10 +145,10 @@ const createOrderSchema = z.object({
 });
 
 const updateOrderSchema = z.object({
-  status: orderStatusEnum.optional(),
+  status: z.preprocess(emptyToUndefined, orderStatusEnum.optional()),
   notes: z.string().optional(),
   paymentMethod: z.string().optional(),
-  tableId: z.string().uuid().nullable().optional(),
+  tableId: z.preprocess(emptyToUndefined, z.string().uuid().nullable().optional()),
 });
 
 const updateOrderItemSchema = z.object({
@@ -234,7 +239,7 @@ router.patch("/order-items/:id", async (req, res, next) => {
 const createCustomerSchema = z.object({
   name: z.string().min(1).max(255),
   phone: z.string().optional(),
-  email: z.string().email().optional(),
+  email: optionalEmail(),
   preferences: z.string().optional(),
   loyaltyPoints: z.coerce.number().int().nonnegative().optional(),
 });
@@ -305,15 +310,15 @@ const createShiftSchema = z.object({
   startTime: timeField,
   endTime: timeField,
   role: shiftRoleEnum,
-  status: shiftStatusEnum.default("scheduled"),
+  status: z.preprocess(emptyToUndefined, shiftStatusEnum.default("scheduled")),
 });
 
 const updateShiftSchema = z.object({
-  shiftDate: z.coerce.date().optional(),
-  startTime: timeField.optional(),
-  endTime: timeField.optional(),
-  role: shiftRoleEnum.optional(),
-  status: shiftStatusEnum.optional(),
+  shiftDate: z.preprocess(emptyToUndefined, z.coerce.date().optional()),
+  startTime: z.preprocess(emptyToUndefined, timeField.optional()),
+  endTime: z.preprocess(emptyToUndefined, timeField.optional()),
+  role: z.preprocess(emptyToUndefined, shiftRoleEnum.optional()),
+  status: z.preprocess(emptyToUndefined, shiftStatusEnum.optional()),
 });
 
 router.get("/shifts", async (req, res, next) => {
@@ -379,7 +384,7 @@ const createInventorySchema = z.object({
   unit: inventoryUnitEnum,
   reorderLevel: z.coerce.number().nonnegative().optional(),
   costPerUnit: z.coerce.number().nonnegative().optional(),
-  supplierId: z.string().uuid().optional(),
+  supplierId: optionalUuid(),
 });
 
 const updateInventorySchema = createInventorySchema.partial();
@@ -461,7 +466,7 @@ const tableStatusEnum = z.enum(["vacant", "occupied", "reserved", "cleaning"]);
 const createTableSchema = z.object({
   tableNumber: z.string().min(1).max(50),
   capacity: z.coerce.number().int().positive(),
-  status: tableStatusEnum.default("vacant"),
+  status: z.preprocess(emptyToUndefined, tableStatusEnum.default("vacant")),
 });
 
 const updateTableSchema = createTableSchema.partial();
@@ -528,18 +533,18 @@ const createReservationSchema = z.object({
   reservationDate: z.coerce.date(),
   reservationTime: timeField,
   partySize: z.coerce.number().int().positive(),
-  tableId: z.string().uuid().optional(),
-  status: reservationStatusEnum.default("confirmed"),
+  tableId: optionalUuid(),
+  status: z.preprocess(emptyToUndefined, reservationStatusEnum.default("confirmed")),
   notes: z.string().optional(),
 });
 
 const updateReservationSchema = z.object({
-  customerId: z.string().uuid().optional(),
-  reservationDate: z.coerce.date().optional(),
-  reservationTime: timeField.optional(),
+  customerId: optionalUuid(),
+  reservationDate: z.preprocess(emptyToUndefined, z.coerce.date().optional()),
+  reservationTime: z.preprocess(emptyToUndefined, timeField.optional()),
   partySize: z.coerce.number().int().positive().optional(),
-  tableId: z.string().uuid().optional(),
-  status: reservationStatusEnum.optional(),
+  tableId: optionalUuid(),
+  status: z.preprocess(emptyToUndefined, reservationStatusEnum.optional()),
   notes: z.string().optional(),
 });
 

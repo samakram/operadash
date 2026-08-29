@@ -21,6 +21,12 @@ const classStatusEnum = z.enum(["active", "completed", "cancelled"]);
 const enrollmentStatusEnum = z.enum(["active", "completed", "dropped", "suspended"]);
 const announcementAudienceEnum = z.enum(["all_students", "class_specific", "instructor_only"]);
 
+/** Treats "" (as sent by untouched optional select/date/text fields in EntityCrudPage) as absent. */
+const emptyToUndefined = (value: unknown): unknown => (value === "" ? undefined : value);
+const optionalEmail = () => z.preprocess(emptyToUndefined, z.string().email().optional());
+const optionalDate = () => z.preprocess(emptyToUndefined, z.coerce.date().optional());
+const optionalUuid = () => z.preprocess(emptyToUndefined, z.string().uuid().optional());
+
 // ============================================================
 // STUDENTS
 // ============================================================
@@ -28,16 +34,16 @@ const announcementAudienceEnum = z.enum(["all_students", "class_specific", "inst
 const createStudentSchema = z.object({
   firstName: z.string().min(1).max(255),
   lastName: z.string().min(1).max(255),
-  email: z.string().email().optional(),
+  email: optionalEmail(),
   phone: z.string().max(20).optional(),
-  dateOfBirth: z.coerce.date().optional(),
+  dateOfBirth: optionalDate(),
   gender: z.string().max(50).optional(),
   address: z.string().optional(),
   parentName: z.string().max(255).optional(),
-  parentEmail: z.string().email().optional(),
+  parentEmail: optionalEmail(),
   parentPhone: z.string().max(20).optional(),
   enrollmentDate: z.coerce.date(),
-  status: studentStatusEnum.optional(),
+  status: z.preprocess(emptyToUndefined, studentStatusEnum.optional()),
 });
 const updateStudentSchema = createStudentSchema.partial();
 
@@ -99,11 +105,11 @@ router.delete("/students/:id", async (req, res, next) => {
 const createInstructorSchema = z.object({
   firstName: z.string().min(1).max(255),
   lastName: z.string().min(1).max(255),
-  email: z.string().email().optional(),
+  email: optionalEmail(),
   phone: z.string().max(20).optional(),
   specialization: z.string().max(255).optional(),
   bio: z.string().optional(),
-  hireDate: z.coerce.date().optional(),
+  hireDate: optionalDate(),
 });
 const updateInstructorSchema = createInstructorSchema.partial();
 
@@ -170,9 +176,9 @@ const createClassSchema = z.object({
   schedule: z.unknown().optional(),
   capacity: z.coerce.number().int().min(1),
   pricePerCourse: z.coerce.number().min(0).optional(),
-  startDate: z.coerce.date().optional(),
-  endDate: z.coerce.date().optional(),
-  status: classStatusEnum.optional(),
+  startDate: optionalDate(),
+  endDate: optionalDate(),
+  status: z.preprocess(emptyToUndefined, classStatusEnum.optional()),
 });
 const updateClassSchema = createClassSchema.partial();
 
@@ -241,7 +247,7 @@ const createEnrollmentSchema = z.object({
   studentId: z.string().uuid(),
   classId: z.string().uuid(),
   enrollmentDate: z.coerce.date(),
-  status: enrollmentStatusEnum.optional(),
+  status: z.preprocess(emptyToUndefined, enrollmentStatusEnum.optional()),
   progressPercentage: z.coerce.number().int().min(0).max(100).optional(),
 });
 const updateEnrollmentSchema = createEnrollmentSchema.partial();
@@ -397,7 +403,7 @@ const createGradeSchema = z.object({
   score: z.coerce.number().min(0),
   maxScore: z.coerce.number().min(0),
   weight: z.coerce.number().int().min(1).max(1000).optional(),
-  submittedDate: z.coerce.date().optional(),
+  submittedDate: optionalDate(),
   comments: z.string().optional(),
 });
 const updateGradeSchema = createGradeSchema.partial();
@@ -474,7 +480,7 @@ const createTuitionSchema = z.object({
   amountDue: z.coerce.number().min(0),
   amountPaid: z.coerce.number().min(0).optional(),
   dueDate: z.coerce.date(),
-  paidDate: z.coerce.date().optional(),
+  paidDate: optionalDate(),
   paymentMethod: z.string().max(100).optional(),
   notes: z.string().optional(),
 });
@@ -539,7 +545,7 @@ const createAnnouncementSchema = z.object({
   title: z.string().min(1).max(255),
   content: z.string().min(1),
   audienceType: announcementAudienceEnum,
-  targetClassId: z.string().uuid().optional(),
+  targetClassId: optionalUuid(),
 });
 const updateAnnouncementSchema = createAnnouncementSchema.partial();
 
