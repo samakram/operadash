@@ -6,23 +6,25 @@ export default {
     extend: {
       colors: {
         aurora: {
-          // Flat, single-accent palette — Trello/Atlassian/GHL-style blue, no gradients.
-          purple: "#0C66E4",
-          accent: "#0C66E4",
-          "accent-hover": "#0955C5",
-          "accent-soft": "#E9F2FF",
-          blue: "#0C66E4",
-          cyan: "#0C66E4",
-          success: "#1F845A",
-          "success-soft": "#DCFFF1",
-          warning: "#B76E00",
-          "warning-soft": "#FFF3D6",
-          error: "#C9372C",
-          "error-soft": "#FFECEB",
-          bg: "#F7F8F9",
+          // Flat iOS/iMessage-style palette: system blue for actions/links, system
+          // green for toggles and success (matching the iOS Switch default), soft
+          // grays for text/borders instead of near-black. No gradients.
+          purple: "#007AFF",
+          accent: "#007AFF",
+          "accent-hover": "#0066D6",
+          "accent-soft": "#E8F1FF",
+          blue: "#007AFF",
+          cyan: "#007AFF",
+          success: "#34C759",
+          "success-soft": "#E6F9EA",
+          warning: "#FF9500",
+          "warning-soft": "#FFF2E0",
+          error: "#FF3B30",
+          "error-soft": "#FFEBEA",
+          bg: "#F2F2F7",
           surface: "#FFFFFF",
-          border: "#DFE1E6",
-          text: "#172B4D",
+          border: "#E5E5EA",
+          text: "#1C1C1E",
         },
       },
       fontFamily: {
