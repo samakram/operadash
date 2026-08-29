@@ -15,6 +15,18 @@ export interface Tenant {
   logoUrl: string | null;
   active: boolean;
   monthlyRevenue: string;
+  settings: Record<string, unknown>;
+}
+
+export interface InvoiceSettings {
+  companyName?: string;
+  address?: string;
+  taxId?: string;
+}
+
+export function getInvoiceSettings(tenant: Pick<Tenant, "settings"> | null | undefined): InvoiceSettings {
+  const invoice = tenant?.settings?.invoice;
+  return invoice && typeof invoice === "object" ? (invoice as InvoiceSettings) : {};
 }
 
 interface TenantContextValue {

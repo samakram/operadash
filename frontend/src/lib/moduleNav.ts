@@ -21,6 +21,9 @@ import {
   Archive,
   Table2,
   ClipboardCheck,
+  Clock,
+  Scissors,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import type { ModuleName } from "@/hooks/useTenant";
@@ -71,6 +74,10 @@ export const MODULE_FEATURES: Record<ModuleName, ModuleFeature[]> = {
     { to: "lab-results", label: "Lab Results", icon: FlaskConical },
     { to: "insurance", label: "Insurance", icon: ShieldCheck },
     { to: "billing", label: "Billing", icon: Receipt },
+    { to: "staff", label: "Hospital Staff", icon: UserCheck },
+    { to: "shifts", label: "Shifts", icon: Clock },
+    { to: "surgery", label: "Surgery", icon: Scissors },
+    { to: "calendar", label: "Calendar", icon: CalendarDays },
   ],
   restaurant: [
     { to: "pipeline", label: "Pipeline", icon: Kanban },

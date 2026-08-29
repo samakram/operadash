@@ -1,6 +1,16 @@
 import { useState, type ReactNode } from "react";
 import { Pencil } from "lucide-react";
-import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 
 export interface KanbanColumn {
@@ -60,16 +70,14 @@ function ColumnHeader({ column, onRename }: { column: KanbanColumn; onRename?: (
 }
 
 function DraggableCard({ id, children }: { id: string; children: ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
-  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
       {...listeners}
       {...attributes}
-      className={cn("cursor-grab touch-none active:cursor-grabbing", isDragging && "relative z-50 opacity-90")}
+      className={cn("cursor-grab touch-none transition-opacity duration-150 active:cursor-grabbing", isDragging && "opacity-30")}
     >
       {children}
     </div>
@@ -82,7 +90,7 @@ function DroppableColumn({ id, children }: { id: string; children: ReactNode }) 
     <div
       ref={setNodeRef}
       className={cn(
-        "flex h-full flex-col gap-2 overflow-y-auto rounded-2xl border border-black/5 bg-black/[0.02] p-2 transition-colors duration-200",
+        "flex h-full flex-col gap-2 overflow-y-auto rounded-2xl border border-black/5 bg-white p-2 transition-colors duration-150",
         isOver && "border-aurora-accent/30 bg-aurora-accent/[0.05]",
       )}
     >
@@ -102,8 +110,14 @@ export function KanbanBoard<T extends { id: string }>({
   onRenameColumn,
 }: KanbanBoardProps<T>) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = event;
     if (!over) return;
     const itemId = String(active.id);
@@ -114,8 +128,10 @@ export function KanbanBoard<T extends { id: string }>({
     }
   };
 
+  const activeItem = activeId ? items.find((i) => i.id === activeId) : undefined;
+
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
       <div className="flex min-h-[70vh] flex-1 gap-4 overflow-x-auto pb-2">
         {columns.map((column) => {
           const columnItems = items.filter((item) => getColumnId(item) === column.id);
@@ -140,6 +156,9 @@ export function KanbanBoard<T extends { id: string }>({
           );
         })}
       </div>
+      <DragOverlay dropAnimation={{ duration: 150, easing: "ease-out" }}>
+        {activeItem ? <div className="rotate-1 cursor-grabbing shadow-glass-hover">{renderCard(activeItem)}</div> : null}
+      </DragOverlay>
     </DndContext>
   );
 }

@@ -18,6 +18,9 @@ router.use("/vitals", requireFeature("patient", "vitals"));
 router.use("/lab-results", requireFeature("patient", "lab-results"));
 router.use("/insurance", requireFeature("patient", "insurance"));
 router.use("/billing", requireFeature("patient", "billing"));
+router.use("/staff", requireFeature("patient", "staff"));
+router.use("/shifts", requireFeature("patient", "shifts"));
+router.use("/surgery", requireFeature("patient", "surgery"));
 
 // ============================================================
 // Shared zod helpers
@@ -37,6 +40,8 @@ const appointmentStatusEnum = z.enum(["scheduled", "checked_in", "completed", "c
 const prescriptionFrequencyEnum = z.enum(["once_daily", "twice_daily", "three_times_daily", "as_needed"]);
 const labStatusEnum = z.enum(["normal", "abnormal", "critical"]);
 const claimStatusEnum = z.enum(["pending", "submitted", "approved", "denied"]);
+const shiftStatusEnum = z.enum(["scheduled", "completed", "missed"]);
+const surgeryStatusEnum = z.enum(["scheduled", "in_progress", "completed", "cancelled"]);
 
 function searchParam(req: import("express").Request): string | undefined {
   return typeof req.query.search === "string" ? req.query.search : undefined;
@@ -647,6 +652,230 @@ router.delete("/billing/:id", async (req, res, next) => {
     await patientService.deleteBilling(req.tenantId!, req.params.id);
     await recordAudit(req, "delete", "PatientBilling", req.params.id);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ============================================================
+// HOSPITAL OPS — staff, shifts, check-in/out, surgery
+// ============================================================
+
+const staffMemberSchema = z.object({
+  firstName: z.string().min(1).max(255),
+  lastName: z.string().min(1).max(255),
+  role: z.string().min(1).max(100),
+  department: optionalString(255),
+  email: optionalEmail,
+  phone: optionalString(20),
+  active: z.boolean().optional(),
+});
+const staffMemberUpdateSchema = staffMemberSchema.partial();
+
+router.get("/staff", async (req, res, next) => {
+  try {
+    const query = paginationSchema.parse(req.query);
+    res.json(await patientService.listStaffMembers(req.tenantId!, query));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/staff/export", async (req, res, next) => {
+  try {
+    const rows = await patientService.exportStaffMembers(req.tenantId!, searchParam(req));
+    sendCsv(res, "hospital-staff.csv", rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/staff", async (req, res, next) => {
+  try {
+    const input = staffMemberSchema.parse(req.body);
+    const staff = await patientService.createStaffMember(req.tenantId!, input);
+    await recordAudit(req, "create", "PatientStaffMember", staff.id, { after: input });
+    res.status(201).json(staff);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch("/staff/:id", async (req, res, next) => {
+  try {
+    const input = staffMemberUpdateSchema.parse(req.body);
+    const staff = await patientService.updateStaffMember(req.tenantId!, req.params.id, input);
+    await recordAudit(req, "update", "PatientStaffMember", req.params.id, { changes: input });
+    res.json(staff);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/staff/:id", async (req, res, next) => {
+  try {
+    await patientService.deleteStaffMember(req.tenantId!, req.params.id);
+    await recordAudit(req, "delete", "PatientStaffMember", req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+const checkInSchema = z.object({ shiftId: z.preprocess(emptyToUndefined, uuid.optional()) });
+
+router.post("/staff/:id/check-in", async (req, res, next) => {
+  try {
+    const { shiftId } = checkInSchema.parse(req.body ?? {});
+    const checkIn = await patientService.checkInStaffMember(req.tenantId!, req.params.id, shiftId);
+    await recordAudit(req, "update", "PatientStaffCheckIn", checkIn.id, { checkedIn: true });
+    res.status(201).json(checkIn);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/staff/:id/check-out", async (req, res, next) => {
+  try {
+    const checkIn = await patientService.checkOutStaffMember(req.tenantId!, req.params.id);
+    await recordAudit(req, "update", "PatientStaffCheckIn", checkIn.id, { checkedOut: true });
+    res.json(checkIn);
+  } catch (err) {
+    next(err);
+  }
+});
+
+const shiftSchema = z.object({
+  staffId: uuid,
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+  department: optionalString(255),
+  status: z.preprocess(emptyToUndefined, shiftStatusEnum.optional()),
+});
+const shiftUpdateSchema = shiftSchema.partial();
+
+router.get("/shifts", async (req, res, next) => {
+  try {
+    const query = paginationSchema.parse(req.query);
+    res.json(await patientService.listShifts(req.tenantId!, query));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/shifts/export", async (req, res, next) => {
+  try {
+    const rows = await patientService.exportShifts(req.tenantId!, searchParam(req));
+    sendCsv(res, "shifts.csv", rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/shifts", async (req, res, next) => {
+  try {
+    const input = shiftSchema.parse(req.body);
+    const shift = await patientService.createShift(req.tenantId!, input);
+    await recordAudit(req, "create", "PatientShift", shift.id, { after: input });
+    res.status(201).json(shift);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch("/shifts/:id", async (req, res, next) => {
+  try {
+    const input = shiftUpdateSchema.parse(req.body);
+    const shift = await patientService.updateShift(req.tenantId!, req.params.id, input);
+    await recordAudit(req, "update", "PatientShift", req.params.id, { changes: input });
+    res.json(shift);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/shifts/:id", async (req, res, next) => {
+  try {
+    await patientService.deleteShift(req.tenantId!, req.params.id);
+    await recordAudit(req, "delete", "PatientShift", req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+const surgerySchema = z.object({
+  patientId: uuid,
+  surgeonId: uuid,
+  procedure: z.string().min(1).max(255),
+  operatingRoom: optionalString(100),
+  scheduledStart: z.coerce.date(),
+  scheduledEnd: z.coerce.date(),
+  status: z.preprocess(emptyToUndefined, surgeryStatusEnum.optional()),
+  notes: optionalString(),
+});
+const surgeryUpdateSchema = surgerySchema.partial();
+
+router.get("/surgery", async (req, res, next) => {
+  try {
+    const query = paginationSchema.parse(req.query);
+    res.json(await patientService.listSurgeries(req.tenantId!, query));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/surgery/export", async (req, res, next) => {
+  try {
+    const rows = await patientService.exportSurgeries(req.tenantId!, searchParam(req));
+    sendCsv(res, "surgery.csv", rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/surgery", async (req, res, next) => {
+  try {
+    const input = surgerySchema.parse(req.body);
+    const surgery = await patientService.createSurgery(req.tenantId!, input);
+    await recordAudit(req, "create", "PatientSurgery", surgery.id, { after: input });
+    res.status(201).json(surgery);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch("/surgery/:id", async (req, res, next) => {
+  try {
+    const input = surgeryUpdateSchema.parse(req.body);
+    const surgery = await patientService.updateSurgery(req.tenantId!, req.params.id, input);
+    await recordAudit(req, "update", "PatientSurgery", req.params.id, { changes: input });
+    res.json(surgery);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/surgery/:id", async (req, res, next) => {
+  try {
+    await patientService.deleteSurgery(req.tenantId!, req.params.id);
+    await recordAudit(req, "delete", "PatientSurgery", req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+const calendarRangeSchema = z.object({ from: z.coerce.date(), to: z.coerce.date() });
+
+router.get("/calendar", async (req, res, next) => {
+  try {
+    const { from, to } = calendarRangeSchema.parse(req.query);
+    const [shifts, surgeries] = await Promise.all([
+      patientService.listShiftsInRange(req.tenantId!, from, to),
+      patientService.listSurgeriesInRange(req.tenantId!, from, to),
+    ]);
+    res.json({ shifts, surgeries });
   } catch (err) {
     next(err);
   }

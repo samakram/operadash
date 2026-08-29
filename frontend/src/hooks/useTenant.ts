@@ -1,2 +1,2 @@
-export { useTenantContext as useTenant } from "@/context/TenantContext";
-export type { Tenant, ModuleName, PlanTier } from "@/context/TenantContext";
+export { useTenantContext as useTenant, getInvoiceSettings } from "@/context/TenantContext";
+export type { Tenant, ModuleName, PlanTier, InvoiceSettings } from "@/context/TenantContext";

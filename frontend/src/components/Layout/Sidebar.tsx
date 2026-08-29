@@ -97,7 +97,7 @@ function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => v
                 </span>
               )}
             </NavLink>
-            {isModuleActive && item.moduleKey && (
+            {item.moduleKey && (
               <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-aurora-border pl-3">
                 {MODULE_FEATURES[item.moduleKey].map((feature) => (
                   <NavLink

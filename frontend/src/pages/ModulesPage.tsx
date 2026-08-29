@@ -48,25 +48,25 @@ export default function ModulesPage() {
         <p className="mt-1 text-sm text-aurora-text/60">Platform modules available to tenants</p>
       </div>
 
-      <div className="stagger-children grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         {modules.map((module) => {
           const Icon = MODULE_ICON[module.name] ?? Hotel;
           return (
-            <GlassCard key={module.id} className="flex flex-col gap-4">
+            <GlassCard key={module.id} padding="sm" className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aurora-accent">
-                    <Icon size={18} />
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-aurora-accent">
+                    <Icon size={15} className="text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold capitalize">{module.name} CRM</p>
+                    <p className="text-sm font-semibold capitalize">{module.name} CRM</p>
                     <p className="text-xs text-aurora-text/50">v{module.version}</p>
                   </div>
                 </div>
                 <span className="aurora-badge border-aurora-success/40 text-aurora-success">Active</span>
               </div>
-              <p className="text-sm text-aurora-text/60">{module.description}</p>
-              <div className="flex items-center justify-between border-t border-black/10 pt-3 text-sm text-aurora-text/50">
+              <p className="text-xs text-aurora-text/60">{module.description}</p>
+              <div className="flex items-center justify-between border-t border-black/10 pt-2.5 text-xs text-aurora-text/50">
                 <span>{module.tenantsUsing} tenant{module.tenantsUsing === 1 ? "" : "s"} using</span>
                 <span>Updated {formatDate(module.createdAt)}</span>
               </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2, ScrollText } from "lucide-react";
+import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2, ScrollText, Receipt } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { AuroraButton } from "@/components/Common/AuroraButton";
@@ -11,7 +11,7 @@ import { useToast } from "@/components/Common/Toast";
 import { Toggle } from "@/components/Common/Toggle";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency, formatDate, initials, splitFullName, titleCase } from "@/lib/utils";
-import type { ModuleName, PlanTier, Tenant } from "@/hooks/useTenant";
+import { getInvoiceSettings, type ModuleName, type PlanTier, type Tenant } from "@/hooks/useTenant";
 
 interface TenantUser {
   id: string;
@@ -77,6 +77,10 @@ export default function TenantDetail() {
   const [logoModalOpen, setLogoModalOpen] = useState(false);
   const [logoUrlInput, setLogoUrlInput] = useState("");
   const [isSavingLogo, setIsSavingLogo] = useState(false);
+
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [invoiceForm, setInvoiceForm] = useState({ companyName: "", address: "", taxId: "" });
+  const [isSavingInvoice, setIsSavingInvoice] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -217,6 +221,27 @@ export default function TenantDetail() {
     }
   };
 
+  const openInvoiceModal = () => {
+    const invoice = getInvoiceSettings(tenant);
+    setInvoiceForm({ companyName: invoice.companyName ?? "", address: invoice.address ?? "", taxId: invoice.taxId ?? "" });
+    setInvoiceModalOpen(true);
+  };
+
+  const handleSaveInvoiceSettings = async () => {
+    if (!tenant) return;
+    setIsSavingInvoice(true);
+    try {
+      await api.patch(`/tenants/${tenant.id}`, { settings: { ...tenant.settings, invoice: invoiceForm } });
+      show("Invoicing details updated", "success");
+      setInvoiceModalOpen(false);
+      await load();
+    } catch (err) {
+      show(getApiErrorMessage(err, "Failed to update invoicing details"), "error");
+    } finally {
+      setIsSavingInvoice(false);
+    }
+  };
+
   const handleDeleteUser = async () => {
     if (!deleteUserTarget) return;
     try {
@@ -318,6 +343,30 @@ export default function TenantDetail() {
           </div>
         </GlassCard>
       )}
+
+      <GlassCard className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3>Invoicing details</h3>
+            <p className="mt-0.5 text-sm text-aurora-text/60">Company name, address, and tax ID printed on this tenant's invoices.</p>
+          </div>
+          <AuroraButton size="sm" variant="ghost" icon={<Receipt size={14} />} onClick={openInvoiceModal}>
+            Edit
+          </AuroraButton>
+        </div>
+        {(() => {
+          const invoice = getInvoiceSettings(tenant);
+          return invoice.companyName || invoice.address || invoice.taxId ? (
+            <div className="text-sm text-aurora-text/70">
+              <p className="font-medium">{invoice.companyName || tenant.name}</p>
+              {invoice.address && <p>{invoice.address}</p>}
+              {invoice.taxId && <p className="text-aurora-text/50">Tax ID: {invoice.taxId}</p>}
+            </div>
+          ) : (
+            <p className="text-sm text-aurora-text/40">Not set — invoices will fall back to the tenant name and logo only.</p>
+          );
+        })()}
+      </GlassCard>
 
       <GlassCard padding="none">
         <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
@@ -509,6 +558,44 @@ export default function TenantDetail() {
             onChange={(e) => setLogoUrlInput(e.target.value)}
           />
           {logoUrlInput && <img src={logoUrlInput} alt="" className="h-16 w-16 rounded-lg border border-aurora-border object-cover" />}
+        </div>
+      </Modal>
+
+      <Modal
+        open={invoiceModalOpen}
+        onClose={() => setInvoiceModalOpen(false)}
+        title="Invoicing details"
+        size="sm"
+        footer={
+          <>
+            <AuroraButton variant="ghost" onClick={() => setInvoiceModalOpen(false)}>
+              Cancel
+            </AuroraButton>
+            <AuroraButton isLoading={isSavingInvoice} onClick={handleSaveInvoiceSettings}>
+              Save
+            </AuroraButton>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <GlassInput
+            label="Company name"
+            placeholder={tenant.name}
+            value={invoiceForm.companyName}
+            onChange={(e) => setInvoiceForm((f) => ({ ...f, companyName: e.target.value }))}
+          />
+          <GlassInput
+            label="Address"
+            placeholder="123 Main St, City, Country"
+            value={invoiceForm.address}
+            onChange={(e) => setInvoiceForm((f) => ({ ...f, address: e.target.value }))}
+          />
+          <GlassInput
+            label="Tax ID"
+            placeholder="e.g. VAT / EIN number"
+            value={invoiceForm.taxId}
+            onChange={(e) => setInvoiceForm((f) => ({ ...f, taxId: e.target.value }))}
+          />
         </div>
       </Modal>
     </div>

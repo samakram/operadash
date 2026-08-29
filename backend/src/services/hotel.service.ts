@@ -679,6 +679,25 @@ export async function deleteInvoice(tenantId: string, id: string): Promise<void>
   await prisma.hotelInvoice.delete({ where: { id } });
 }
 
+export async function cloneInvoice(tenantId: string, id: string) {
+  const existing = await prisma.hotelInvoice.findFirst({ where: { id, tenantId } });
+  if (!existing) throw AppError.notFound("Invoice not found");
+
+  return prisma.hotelInvoice.create({
+    data: {
+      tenantId,
+      guestId: existing.guestId,
+      reservationId: existing.reservationId,
+      amount: existing.amount,
+      tax: existing.tax,
+      totalAmount: existing.totalAmount,
+      paymentMethod: existing.paymentMethod,
+      status: "unpaid",
+    },
+    include: invoiceInclude,
+  });
+}
+
 // ============================================================
 // Dashboard
 // ============================================================

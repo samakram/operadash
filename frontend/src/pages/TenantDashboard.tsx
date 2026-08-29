@@ -28,7 +28,7 @@ export default function TenantDashboard() {
               <div key={moduleName} className="flex flex-col gap-3">
                 <Link to={meta.to} className="flex items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-aurora-accent">
-                    <meta.icon size={18} />
+                    <meta.icon size={18} className="text-white" />
                   </div>
                   <div>
                     <h3 className="text-base font-semibold hover:text-aurora-accent">{meta.label}</h3>
@@ -36,17 +36,15 @@ export default function TenantDashboard() {
                   </div>
                 </Link>
 
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                <div className="flex flex-col border-l-2 border-aurora-accent/25 pl-4">
                   {features.map((feature) => (
                     <Link
                       key={feature.to}
                       to={`${meta.to}/${feature.to}`}
-                      className="flex flex-col items-start gap-2 rounded-xl border border-aurora-border bg-white p-3 transition hover:border-aurora-accent/40 hover:shadow-glass-hover"
+                      className="flex items-center gap-2.5 border-b border-black/[0.04] py-2.5 text-sm text-aurora-text/80 transition last:border-b-0 hover:text-aurora-accent"
                     >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-aurora-accent-soft text-aurora-accent">
-                        <feature.icon size={15} />
-                      </div>
-                      <span className="text-sm font-medium">{feature.label}</span>
+                      <feature.icon size={15} className="text-aurora-text/40" />
+                      <span className="font-medium">{feature.label}</span>
                     </Link>
                   ))}
                 </div>

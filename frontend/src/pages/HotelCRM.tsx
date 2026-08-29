@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { Percent, DollarSign, UserCheck, AlertTriangle } from "lucide-react";
+import { Percent, DollarSign, UserCheck, AlertTriangle, Eye, Copy } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import { GlassCard } from "@/components/Common/GlassCard";
@@ -8,6 +8,7 @@ import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
 import { EntityCrudPage, type FieldDef } from "@/components/Common/EntityCrudPage";
 import { LeadsBoard } from "@/components/Common/LeadsBoard";
+import { InvoiceView, type InvoiceViewData } from "@/components/Common/InvoiceView";
 import type { Column } from "@/components/Common/Table";
 import { cn, formatCurrency, formatDate, titleCase } from "@/lib/utils";
 
@@ -519,12 +520,14 @@ function MaintenanceTab() {
 
 interface InvoiceRow extends Record<string, unknown> {
   id: string;
+  createdAt: string;
   amount: string | number;
   tax: string | number;
   totalAmount: string | number;
   paidAt: string | null;
+  paymentMethod: string | null;
   status: string;
-  guest: { firstName: string; lastName: string } | null;
+  guest: { firstName: string; lastName: string; email: string | null; phone: string | null; address: string | null } | null;
 }
 
 const INVOICE_STATUS_OPTIONS = [
@@ -534,6 +537,11 @@ const INVOICE_STATUS_OPTIONS = [
 ];
 
 function InvoicesTab() {
+  const { show } = useToast();
+  const [viewing, setViewing] = useState<InvoiceViewData | null>(null);
+  const [cloningId, setCloningId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const columns: Column<InvoiceRow>[] = [
     { key: "guest", header: "Guest", render: (r) => personName(r.guest) },
     { key: "amount", header: "Amount", render: (r) => formatCurrency(r.amount) },
@@ -554,15 +562,65 @@ function InvoicesTab() {
     { name: "status", label: "Status", type: "select", options: INVOICE_STATUS_OPTIONS },
   ];
 
+  const handleClone = async (row: InvoiceRow) => {
+    setCloningId(row.id);
+    try {
+      await api.post(`/hotel/invoices/${row.id}/clone`);
+      show("Invoice cloned", "success");
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      show(getApiErrorMessage(err, "Failed to clone invoice"), "error");
+    } finally {
+      setCloningId(null);
+    }
+  };
+
   return (
-    <EntityCrudPage<InvoiceRow>
-      title="Invoices"
-      description="Guest billing — total is auto-calculated from amount + tax unless overridden"
-      resource="/hotel/invoices"
-      searchPlaceholder="Search invoices by guest or payment method..."
-      columns={columns}
-      fields={fields}
-    />
+    <>
+      <EntityCrudPage<InvoiceRow>
+        key={refreshKey}
+        title="Invoices"
+        description="Guest billing — total is auto-calculated from amount + tax unless overridden"
+        resource="/hotel/invoices"
+        searchPlaceholder="Search invoices by guest or payment method..."
+        columns={columns}
+        fields={fields}
+        rowActions={(row) => (
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() =>
+                setViewing({
+                  id: row.id,
+                  createdAt: row.createdAt,
+                  billTo: { name: personName(row.guest), email: row.guest?.email, phone: row.guest?.phone, address: row.guest?.address },
+                  amount: row.amount,
+                  tax: row.tax,
+                  totalAmount: row.totalAmount,
+                  status: row.status,
+                  paidAt: row.paidAt,
+                  paymentMethod: row.paymentMethod,
+                })
+              }
+              className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
+              aria-label="View invoice"
+              title="View invoice"
+            >
+              <Eye size={16} />
+            </button>
+            <button
+              onClick={() => handleClone(row)}
+              disabled={cloningId === row.id}
+              className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent disabled:opacity-40"
+              aria-label="Clone invoice"
+              title="Clone invoice"
+            >
+              <Copy size={16} />
+            </button>
+          </div>
+        )}
+      />
+      <InvoiceView open={Boolean(viewing)} onClose={() => setViewing(null)} invoice={viewing} />
+    </>
   );
 }
 

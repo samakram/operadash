@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { MessageCircle, Plus, Send, CheckCircle2, RotateCcw, Building2 } from "lucide-react";
+import { MessageCircle, Plus, Send, CheckCircle2, RotateCcw, Building2, Search } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { AuroraButton } from "@/components/Common/AuroraButton";
 import { GlassInput, GlassTextarea } from "@/components/Common/GlassInput";
@@ -62,6 +62,7 @@ export default function SupportInbox() {
   const [tickets, setTickets] = useState<TicketListRow[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [filter, setFilter] = useState<"open" | "resolved" | "all">("open");
+  const [query, setQuery] = useState("");
 
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
@@ -90,6 +91,17 @@ export default function SupportInbox() {
   useEffect(() => {
     void loadList();
   }, [loadList]);
+
+  const filteredTickets = query.trim()
+    ? tickets.filter((t) => {
+        const q = query.trim().toLowerCase();
+        return (
+          t.subject.toLowerCase().includes(q) ||
+          t.tenant?.name.toLowerCase().includes(q) ||
+          t.messages.some((m) => m.body.toLowerCase().includes(q))
+        );
+      })
+    : tickets;
 
   const loadThread = useCallback(async () => {
     if (!id) {
@@ -173,31 +185,42 @@ export default function SupportInbox() {
 
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-aurora-border bg-white">
         {/* Conversation list — narrow, its own scroll */}
-        <div className="flex w-72 shrink-0 flex-col border-r border-aurora-border sm:w-80">
-          <div className="flex shrink-0 gap-1 border-b border-aurora-border p-2">
-            {(["open", "resolved", "all"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold capitalize transition",
-                  filter === f ? "bg-aurora-accent text-white" : "text-aurora-text/60 hover:bg-black/[0.04]",
-                )}
-              >
-                {f}
-              </button>
-            ))}
+        <div className="flex w-80 shrink-0 flex-col border-r border-aurora-border sm:w-96">
+          <div className="flex shrink-0 flex-col gap-2 border-b border-aurora-border p-3">
+            <div className="relative">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-aurora-text/40" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search conversations..."
+                className="glass-input w-full py-2 pl-8 pr-3 text-sm placeholder:text-aurora-text/40"
+              />
+            </div>
+            <div className="flex gap-1">
+              {(["open", "resolved", "all"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={cn(
+                    "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold capitalize transition",
+                    filter === f ? "bg-aurora-accent text-white" : "text-aurora-text/60 hover:bg-black/[0.04]",
+                  )}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {isLoadingList ? (
               <LoadingSpinner fullscreen />
-            ) : tickets.length === 0 ? (
+            ) : filteredTickets.length === 0 ? (
               <div className="p-6 text-center text-sm text-aurora-text/40">
                 <MessageCircle className="mx-auto mb-2 opacity-40" size={22} />
-                No {filter !== "all" ? filter : ""} tickets
+                {query ? "No matching tickets" : `No ${filter !== "all" ? filter : ""} tickets`}
               </div>
             ) : (
-              tickets.map((t) => {
+              filteredTickets.map((t) => {
                 const last = t.messages[0];
                 const active = t.id === id;
                 return (
@@ -205,7 +228,7 @@ export default function SupportInbox() {
                     key={t.id}
                     onClick={() => navigate(`${basePath}/${t.id}`)}
                     className={cn(
-                      "flex w-full flex-col gap-0.5 border-b border-black/[0.04] px-3 py-2.5 text-left transition",
+                      "flex w-full flex-col gap-1 border-b border-black/[0.04] px-4 py-3.5 text-left transition",
                       active ? "bg-aurora-accent-soft" : "hover:bg-black/[0.03]",
                     )}
                   >
@@ -260,14 +283,14 @@ export default function SupportInbox() {
                 </AuroraButton>
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-black/[0.015] p-4">
+              <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-black/[0.015] p-6">
                 {ticket.messages.map((m) => {
                   const own = isOwnSide(m.senderRole, isSuperAdmin);
                   return (
                     <div key={m.id} className={cn("flex", own ? "justify-end" : "justify-start")}>
                       <div
                         className={cn(
-                          "max-w-[75%] rounded-2xl px-4 py-2 text-sm",
+                          "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm",
                           own ? "rounded-br-md bg-aurora-accent text-white" : "rounded-bl-md bg-black/[0.06] text-aurora-text",
                         )}
                       >

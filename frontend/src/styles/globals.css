@@ -51,3 +51,21 @@ div {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Printing an invoice (or any other #invoice-print-area) should show only that
+   content, full-page — not the dashboard chrome or modal backdrop around it. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice-print-area,
+  #invoice-print-area * {
+    visibility: visible;
+  }
+  #invoice-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

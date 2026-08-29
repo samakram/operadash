@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
-import { Users, CalendarClock, Pill, FlaskConical, FileText, ArrowLeft } from "lucide-react";
+import { Users, CalendarClock, Pill, FlaskConical, FileText, ArrowLeft, UserPlus, Clock } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
+import { AuroraButton } from "@/components/Common/AuroraButton";
 import { EntityCrudPage, type FieldDef } from "@/components/Common/EntityCrudPage";
 import { LeadsBoard } from "@/components/Common/LeadsBoard";
+import { PatientEnrollModal } from "@/components/Patient/PatientEnrollModal";
+import { PatientCalendar } from "@/components/Patient/PatientCalendar";
 import type { Column } from "@/components/Common/Table";
 import { cn, formatCurrency, formatDate, formatDateTime, titleCase } from "@/lib/utils";
 
@@ -193,6 +197,8 @@ interface PatientRow extends Record<string, unknown> {
 
 function PatientsTab() {
   const navigate = useNavigate();
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const columns: Column<PatientRow>[] = [
     { key: "firstName", header: "Name", sortable: true, render: (r) => `${r.firstName} ${r.lastName}` },
     { key: "email", header: "Email" },
@@ -221,24 +227,34 @@ function PatientsTab() {
   ];
 
   return (
-    <EntityCrudPage<PatientRow>
-      title="Patients"
-      description="Patient directory — allergies drive the prescription safety check"
-      resource="/patient/patients"
-      searchPlaceholder="Search patients by name, email, or phone..."
-      columns={columns}
-      fields={fields}
-      rowActions={(row) => (
-        <button
-          onClick={() => navigate(`chart/${row.id}`)}
-          className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
-          aria-label="View chart"
-          title="View chart"
-        >
-          <FileText size={16} />
-        </button>
-      )}
-    />
+    <>
+      <EntityCrudPage<PatientRow>
+        key={refreshKey}
+        title="Patients"
+        description="Patient directory — allergies drive the prescription safety check"
+        resource="/patient/patients"
+        searchPlaceholder="Search patients by name, email, or phone..."
+        columns={columns}
+        fields={fields}
+        canCreate={false}
+        toolbarExtra={
+          <AuroraButton size="sm" icon={<UserPlus size={16} />} onClick={() => setEnrollOpen(true)}>
+            Enroll patient
+          </AuroraButton>
+        }
+        rowActions={(row) => (
+          <button
+            onClick={() => navigate(`chart/${row.id}`)}
+            className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
+            aria-label="View chart"
+            title="View chart"
+          >
+            <FileText size={16} />
+          </button>
+        )}
+      />
+      <PatientEnrollModal open={enrollOpen} onClose={() => setEnrollOpen(false)} onEnrolled={() => setRefreshKey((k) => k + 1)} />
+    </>
   );
 }
 
@@ -372,7 +388,11 @@ function PatientChart() {
                 <p className="font-medium">{r.diagnosis ?? "Visit"}</p>
                 <span className="text-xs text-aurora-text/40">{formatDate(r.visitDate)}</span>
               </div>
-              <p className="text-xs text-aurora-text/50">{r.treatmentPlan ?? r.chiefComplaint ?? "—"}</p>
+              <p className="text-xs text-aurora-text/50">Dr. {r.provider.lastName}</p>
+              <p className="mt-1 text-xs text-aurora-text/60">
+                <span className="font-medium text-aurora-text/40">Doctor's notes: </span>
+                {r.treatmentPlan ?? r.chiefComplaint ?? "—"}
+              </p>
             </div>
           ))}
         </ChartSection>
@@ -385,6 +405,7 @@ function PatientChart() {
                 <p className="text-xs text-aurora-text/50">
                   {p.dosage} &middot; {titleCase(p.frequency)}
                 </p>
+                <p className="text-xs text-aurora-text/40">Prescribed by Dr. {p.prescribingProvider.lastName}</p>
               </div>
               <span className="text-xs text-aurora-text/40">{formatDate(p.startDate)}</span>
             </div>
@@ -852,6 +873,199 @@ function BillingTab() {
 }
 
 // ============================================================
+// Hospital staff tab
+// ============================================================
+
+interface StaffRow extends Record<string, unknown> {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  department: string | null;
+  email: string | null;
+  phone: string | null;
+  active: boolean;
+}
+
+function StaffTab() {
+  const { show } = useToast();
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const columns: Column<StaffRow>[] = [
+    { key: "firstName", header: "Name", sortable: true, render: (r) => `${r.firstName} ${r.lastName}` },
+    { key: "role", header: "Role", sortable: true },
+    { key: "department", header: "Department", render: (r) => r.department ?? "—" },
+    { key: "email", header: "Email", render: (r) => r.email ?? "—" },
+    { key: "phone", header: "Phone", render: (r) => r.phone ?? "—" },
+    {
+      key: "active",
+      header: "Status",
+      render: (r) => (
+        <span className={cn("aurora-badge", r.active ? "border-aurora-success/40 text-aurora-success" : "border-black/20 text-aurora-text/50")}>
+          {r.active ? "Active" : "Inactive"}
+        </span>
+      ),
+    },
+  ];
+
+  const fields: FieldDef[] = [
+    { name: "firstName", label: "First name", type: "text", required: true },
+    { name: "lastName", label: "Last name", type: "text", required: true },
+    { name: "role", label: "Role", type: "text", required: true, placeholder: "Nurse, Surgeon, Technician..." },
+    { name: "department", label: "Department", type: "text" },
+    { name: "email", label: "Email", type: "email" },
+    { name: "phone", label: "Phone", type: "text" },
+    { name: "active", label: "Active", type: "checkbox" },
+  ];
+
+  const handleToggleCheckIn = async (row: StaffRow) => {
+    setBusyId(row.id);
+    try {
+      await api.post(`/patient/staff/${row.id}/check-in`);
+      show(`${row.firstName} checked in`, "success");
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        try {
+          await api.post(`/patient/staff/${row.id}/check-out`);
+          show(`${row.firstName} checked out`, "success");
+        } catch (err2) {
+          show(getApiErrorMessage(err2, "Failed to check out"), "error");
+        }
+      } else {
+        show(getApiErrorMessage(err, "Failed to check in"), "error");
+      }
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <EntityCrudPage<StaffRow>
+      title="Hospital Staff"
+      description="Nurses, surgeons, and technicians — click check-in to clock a shift, click again to clock out"
+      resource="/patient/staff"
+      searchPlaceholder="Search staff by name, role, or department..."
+      columns={columns}
+      fields={fields}
+      rowActions={(row) => (
+        <button
+          onClick={() => handleToggleCheckIn(row)}
+          disabled={busyId === row.id}
+          className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent disabled:opacity-40"
+          aria-label="Toggle check-in"
+          title="Check in / check out"
+        >
+          <Clock size={16} />
+        </button>
+      )}
+    />
+  );
+}
+
+// ============================================================
+// Shifts tab
+// ============================================================
+
+interface ShiftRow extends Record<string, unknown> {
+  id: string;
+  startTime: string;
+  endTime: string;
+  department: string | null;
+  status: string;
+  staff: { firstName: string; lastName: string } | null;
+}
+
+const SHIFT_STATUS_OPTIONS = [
+  { value: "scheduled", label: "Scheduled" },
+  { value: "completed", label: "Completed" },
+  { value: "missed", label: "Missed" },
+];
+
+function ShiftsTab() {
+  const columns: Column<ShiftRow>[] = [
+    { key: "staff", header: "Staff", render: (r) => personName(r.staff) },
+    { key: "startTime", header: "Start", sortable: true, render: (r) => formatDateTime(r.startTime) },
+    { key: "endTime", header: "End", render: (r) => formatDateTime(r.endTime) },
+    { key: "department", header: "Department", render: (r) => r.department ?? "—" },
+    { key: "status", header: "Status", sortable: true, render: (r) => <StatusBadge value={r.status} /> },
+  ];
+
+  const fields: FieldDef[] = [
+    { name: "staffId", label: "Staff member", type: "select", required: true, optionsEndpoint: "/patient/staff" },
+    { name: "startTime", label: "Start", type: "datetime-local", required: true },
+    { name: "endTime", label: "End", type: "datetime-local", required: true },
+    { name: "department", label: "Department", type: "text" },
+    { name: "status", label: "Status", type: "select", options: SHIFT_STATUS_OPTIONS },
+  ];
+
+  return (
+    <EntityCrudPage<ShiftRow>
+      title="Shift Scheduling"
+      description="Who's working when"
+      resource="/patient/shifts"
+      searchPlaceholder="Search shifts by staff or department..."
+      columns={columns}
+      fields={fields}
+    />
+  );
+}
+
+// ============================================================
+// Surgery tab
+// ============================================================
+
+interface SurgeryRow extends Record<string, unknown> {
+  id: string;
+  procedure: string;
+  operatingRoom: string | null;
+  scheduledStart: string;
+  scheduledEnd: string;
+  status: string;
+  patient: { firstName: string; lastName: string } | null;
+  surgeon: { firstName: string; lastName: string } | null;
+}
+
+const SURGERY_STATUS_OPTIONS = [
+  { value: "scheduled", label: "Scheduled" },
+  { value: "in_progress", label: "In progress" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+function SurgeryTab() {
+  const columns: Column<SurgeryRow>[] = [
+    { key: "patient", header: "Patient", render: (r) => personName(r.patient) },
+    { key: "procedure", header: "Procedure", sortable: true },
+    { key: "surgeon", header: "Surgeon", render: (r) => (r.surgeon ? `Dr. ${r.surgeon.lastName}` : "—") },
+    { key: "operatingRoom", header: "OR", render: (r) => r.operatingRoom ?? "—" },
+    { key: "scheduledStart", header: "Scheduled", sortable: true, render: (r) => formatDateTime(r.scheduledStart) },
+    { key: "status", header: "Status", sortable: true, render: (r) => <StatusBadge value={r.status} /> },
+  ];
+
+  const fields: FieldDef[] = [
+    { name: "patientId", label: "Patient", type: "select", required: true, optionsEndpoint: "/patient/patients" },
+    { name: "surgeonId", label: "Surgeon", type: "select", required: true, optionsEndpoint: "/patient/staff" },
+    { name: "procedure", label: "Procedure", type: "text", required: true },
+    { name: "operatingRoom", label: "Operating room", type: "text" },
+    { name: "scheduledStart", label: "Scheduled start", type: "datetime-local", required: true },
+    { name: "scheduledEnd", label: "Scheduled end", type: "datetime-local", required: true },
+    { name: "status", label: "Status", type: "select", options: SURGERY_STATUS_OPTIONS },
+    { name: "notes", label: "Notes", type: "textarea" },
+  ];
+
+  return (
+    <EntityCrudPage<SurgeryRow>
+      title="Surgery"
+      description="Scheduled and in-progress procedures"
+      resource="/patient/surgery"
+      searchPlaceholder="Search surgery by procedure, OR, or patient..."
+      columns={columns}
+      fields={fields}
+    />
+  );
+}
+
+// ============================================================
 // Root: tab bar + routes
 // ============================================================
 
@@ -875,6 +1089,10 @@ export default function PatientCRM() {
         <Route path="lab-results" element={<LabResultsTab />} />
         <Route path="insurance" element={<InsuranceTab />} />
         <Route path="billing" element={<BillingTab />} />
+        <Route path="staff" element={<StaffTab />} />
+        <Route path="shifts" element={<ShiftsTab />} />
+        <Route path="surgery" element={<SurgeryTab />} />
+        <Route path="calendar" element={<PatientCalendar />} />
         <Route path="pipeline" element={<LeadsBoard module="patient" label="Patient" />} />
         <Route path="*" element={<Navigate to="." replace />} />
       </Routes>

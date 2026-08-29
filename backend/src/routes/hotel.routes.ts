@@ -435,6 +435,16 @@ router.patch("/invoices/:id", async (req, res, next) => {
   }
 });
 
+router.post("/invoices/:id/clone", async (req, res, next) => {
+  try {
+    const invoice = await hotelService.cloneInvoice(tenantId(req), req.params.id);
+    await recordAudit(req, "create", "HotelInvoice", invoice.id, { clonedFrom: req.params.id });
+    res.status(201).json(invoice);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.delete("/invoices/:id", async (req, res, next) => {
   try {
     await hotelService.deleteInvoice(tenantId(req), req.params.id);

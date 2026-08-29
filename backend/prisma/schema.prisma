@@ -738,6 +738,7 @@ model PatientPatient {
   labResults     PatientLabResult[]
   insurance      PatientInsurance[]
   billing        PatientBilling[]
+  surgeries      PatientSurgery[]
 
   @@index([tenantId])
   @@map("patient_patients")
@@ -901,6 +902,98 @@ model PatientBilling {
 
   @@index([tenantId])
   @@map("patient_billing")
+}
+
+// ------------------------------------------------------------
+// Hospital ops — staff scheduling, check-in/out, and surgery, folded into
+// the Patient module rather than a separate module (smaller footprint than
+// a new ModuleName + full module-enablement plumbing for what's really an
+// extension of the same clinical-ops space).
+// ------------------------------------------------------------
+
+model PatientStaffMember {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  firstName  String   @map("first_name") @db.VarChar(255)
+  lastName   String   @map("last_name") @db.VarChar(255)
+  role       String   @db.VarChar(100)
+  department String?  @db.VarChar(255)
+  email      String?  @db.VarChar(255)
+  phone      String?  @db.VarChar(20)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  shifts    PatientShift[]
+  checkIns  PatientStaffCheckIn[]
+  surgeries PatientSurgery[]
+
+  @@index([tenantId])
+  @@map("patient_staff_members")
+}
+
+enum PatientShiftStatus {
+  scheduled
+  completed
+  missed
+}
+
+model PatientShift {
+  id         String      @id @default(uuid()) @db.Uuid
+  tenantId   String      @map("tenant_id") @db.Uuid
+  staffId    String      @map("staff_id") @db.Uuid
+  startTime  DateTime    @map("start_time")
+  endTime    DateTime    @map("end_time")
+  department String?            @db.VarChar(255)
+  status     PatientShiftStatus @default(scheduled)
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  staff    PatientStaffMember    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  checkIns PatientStaffCheckIn[]
+
+  @@index([tenantId])
+  @@map("patient_shifts")
+}
+
+model PatientStaffCheckIn {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  staffId    String    @map("staff_id") @db.Uuid
+  shiftId    String?   @map("shift_id") @db.Uuid
+  checkInAt  DateTime  @default(now()) @map("check_in_at")
+  checkOutAt DateTime? @map("check_out_at")
+
+  staff PatientStaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  shift PatientShift?      @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("patient_staff_check_ins")
+}
+
+enum SurgeryStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+model PatientSurgery {
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @map("tenant_id") @db.Uuid
+  patientId      String        @map("patient_id") @db.Uuid
+  surgeonId      String        @map("surgeon_id") @db.Uuid
+  procedure      String        @db.VarChar(255)
+  operatingRoom  String?       @map("operating_room") @db.VarChar(100)
+  scheduledStart DateTime      @map("scheduled_start")
+  scheduledEnd   DateTime      @map("scheduled_end")
+  status         SurgeryStatus @default(scheduled)
+  notes          String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  patient PatientPatient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  surgeon PatientStaffMember @relation(fields: [surgeonId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@map("patient_surgeries")
 }
 
 // ============================================================

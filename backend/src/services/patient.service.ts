@@ -4,6 +4,8 @@ import type {
   LabStatus,
   Prisma,
   PrescriptionFrequency,
+  PatientShiftStatus,
+  SurgeryStatus,
 } from "@prisma/client";
 import { prisma } from "@/database/db";
 import { AppError } from "@/utils/errors";
@@ -64,6 +66,11 @@ async function assertPatientExists(tenantId: string, patientId: string): Promise
 async function assertProviderExists(tenantId: string, providerId: string): Promise<void> {
   const provider = await prisma.patientProvider.findFirst({ where: { id: providerId, tenantId }, select: { id: true } });
   if (!provider) throw AppError.badRequest("Referenced provider does not exist for this tenant");
+}
+
+async function assertStaffMemberExists(tenantId: string, staffId: string): Promise<void> {
+  const staff = await prisma.patientStaffMember.findFirst({ where: { id: staffId, tenantId }, select: { id: true } });
+  if (!staff) throw AppError.badRequest("Referenced staff member does not exist for this tenant");
 }
 
 // ============================================================
@@ -843,6 +850,246 @@ export async function deleteBilling(tenantId: string, id: string): Promise<void>
   const existing = await prisma.patientBilling.findFirst({ where: { id, tenantId }, select: { id: true } });
   if (!existing) throw AppError.notFound("Billing record not found");
   await prisma.patientBilling.delete({ where: { id } });
+}
+
+// ============================================================
+// HOSPITAL OPS — staff, shifts, check-in/out, surgery
+// ============================================================
+
+export interface StaffMemberInput {
+  firstName: string;
+  lastName: string;
+  role: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  active?: boolean;
+}
+
+const STAFF_MEMBER_SORT_FIELDS = ["firstName", "lastName", "role", "department", "createdAt"] as const;
+
+function buildStaffMemberWhere(tenantId: string, search?: string): Prisma.PatientStaffMemberWhereInput {
+  return {
+    tenantId,
+    ...(search
+      ? {
+          OR: [
+            { firstName: { contains: search, mode: "insensitive" } },
+            { lastName: { contains: search, mode: "insensitive" } },
+            { role: { contains: search, mode: "insensitive" } },
+            { department: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+}
+
+export async function listStaffMembers(tenantId: string, query: PaginationQuery) {
+  const where = buildStaffMemberWhere(tenantId, query.search);
+  const orderBy = resolveSort<Prisma.PatientStaffMemberOrderByWithRelationInput>(query, STAFF_MEMBER_SORT_FIELDS, "createdAt");
+  const [data, total] = await Promise.all([
+    prisma.patientStaffMember.findMany({ where, orderBy, ...pageWindow(query) }),
+    prisma.patientStaffMember.count({ where }),
+  ]);
+  return buildPaginatedResult(data, total, query);
+}
+
+export async function exportStaffMembers(tenantId: string, search?: string) {
+  const rows = await prisma.patientStaffMember.findMany({
+    where: buildStaffMemberWhere(tenantId, search),
+    orderBy: { createdAt: "desc" },
+    take: EXPORT_ROW_LIMIT,
+  });
+  return rows.map((row) => serializeForCsv(row));
+}
+
+export async function createStaffMember(tenantId: string, input: StaffMemberInput) {
+  return prisma.patientStaffMember.create({ data: { tenantId, ...input } });
+}
+
+export async function updateStaffMember(tenantId: string, id: string, input: Partial<StaffMemberInput>) {
+  const existing = await prisma.patientStaffMember.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!existing) throw AppError.notFound("Staff member not found");
+  return prisma.patientStaffMember.update({ where: { id }, data: input });
+}
+
+export async function deleteStaffMember(tenantId: string, id: string): Promise<void> {
+  const existing = await prisma.patientStaffMember.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!existing) throw AppError.notFound("Staff member not found");
+  await prisma.patientStaffMember.delete({ where: { id } });
+}
+
+/** The staff member's currently-open check-in, if any (checked in but not checked out). */
+export async function getOpenCheckIn(tenantId: string, staffId: string) {
+  return prisma.patientStaffCheckIn.findFirst({ where: { tenantId, staffId, checkOutAt: null }, orderBy: { checkInAt: "desc" } });
+}
+
+export async function checkInStaffMember(tenantId: string, staffId: string, shiftId?: string) {
+  await assertStaffMemberExists(tenantId, staffId);
+  const open = await getOpenCheckIn(tenantId, staffId);
+  if (open) throw AppError.conflict("This staff member already has an open check-in");
+  if (shiftId) {
+    const shift = await prisma.patientShift.findFirst({ where: { id: shiftId, tenantId }, select: { id: true } });
+    if (!shift) throw AppError.badRequest("Referenced shift does not exist for this tenant");
+  }
+  return prisma.patientStaffCheckIn.create({ data: { tenantId, staffId, shiftId } });
+}
+
+export async function checkOutStaffMember(tenantId: string, staffId: string) {
+  const open = await getOpenCheckIn(tenantId, staffId);
+  if (!open) throw AppError.badRequest("This staff member has no open check-in");
+  return prisma.patientStaffCheckIn.update({ where: { id: open.id }, data: { checkOutAt: new Date() } });
+}
+
+export interface ShiftInput {
+  staffId: string;
+  startTime: Date;
+  endTime: Date;
+  department?: string;
+  status?: PatientShiftStatus;
+}
+
+const SHIFT_SORT_FIELDS = ["startTime", "endTime", "status", "createdAt"] as const;
+const SHIFT_INCLUDE = { staff: true } as const;
+
+function buildShiftWhere(tenantId: string, search?: string): Prisma.PatientShiftWhereInput {
+  return {
+    tenantId,
+    ...(search
+      ? {
+          OR: [
+            { department: { contains: search, mode: "insensitive" } },
+            { staff: { firstName: { contains: search, mode: "insensitive" } } },
+            { staff: { lastName: { contains: search, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+  };
+}
+
+export async function listShifts(tenantId: string, query: PaginationQuery) {
+  const where = buildShiftWhere(tenantId, query.search);
+  const orderBy = resolveSort<Prisma.PatientShiftOrderByWithRelationInput>(query, SHIFT_SORT_FIELDS, "startTime");
+  const [data, total] = await Promise.all([
+    prisma.patientShift.findMany({ where, orderBy, include: SHIFT_INCLUDE, ...pageWindow(query) }),
+    prisma.patientShift.count({ where }),
+  ]);
+  return buildPaginatedResult(data, total, query);
+}
+
+/** Every shift overlapping [from, to) — feeds the hospital-ops calendar view. */
+export async function listShiftsInRange(tenantId: string, from: Date, to: Date) {
+  return prisma.patientShift.findMany({
+    where: { tenantId, startTime: { lt: to }, endTime: { gt: from } },
+    orderBy: { startTime: "asc" },
+    include: SHIFT_INCLUDE,
+  });
+}
+
+export async function exportShifts(tenantId: string, search?: string) {
+  const rows = await prisma.patientShift.findMany({
+    where: buildShiftWhere(tenantId, search),
+    orderBy: { startTime: "desc" },
+    include: SHIFT_INCLUDE,
+    take: EXPORT_ROW_LIMIT,
+  });
+  return rows.map((row) => serializeForCsv(row));
+}
+
+export async function createShift(tenantId: string, input: ShiftInput) {
+  await assertStaffMemberExists(tenantId, input.staffId);
+  return prisma.patientShift.create({ data: { tenantId, ...input }, include: SHIFT_INCLUDE });
+}
+
+export async function updateShift(tenantId: string, id: string, input: Partial<ShiftInput>) {
+  const existing = await prisma.patientShift.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!existing) throw AppError.notFound("Shift not found");
+  if (input.staffId) await assertStaffMemberExists(tenantId, input.staffId);
+  return prisma.patientShift.update({ where: { id }, data: input, include: SHIFT_INCLUDE });
+}
+
+export async function deleteShift(tenantId: string, id: string): Promise<void> {
+  const existing = await prisma.patientShift.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!existing) throw AppError.notFound("Shift not found");
+  await prisma.patientShift.delete({ where: { id } });
+}
+
+export interface SurgeryInput {
+  patientId: string;
+  surgeonId: string;
+  procedure: string;
+  operatingRoom?: string;
+  scheduledStart: Date;
+  scheduledEnd: Date;
+  status?: SurgeryStatus;
+  notes?: string;
+}
+
+const SURGERY_SORT_FIELDS = ["scheduledStart", "scheduledEnd", "status", "createdAt"] as const;
+const SURGERY_INCLUDE = { patient: true, surgeon: true } as const;
+
+function buildSurgeryWhere(tenantId: string, search?: string): Prisma.PatientSurgeryWhereInput {
+  return {
+    tenantId,
+    ...(search
+      ? {
+          OR: [
+            { procedure: { contains: search, mode: "insensitive" } },
+            { operatingRoom: { contains: search, mode: "insensitive" } },
+            { patient: { firstName: { contains: search, mode: "insensitive" } } },
+            { patient: { lastName: { contains: search, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+  };
+}
+
+export async function listSurgeries(tenantId: string, query: PaginationQuery) {
+  const where = buildSurgeryWhere(tenantId, query.search);
+  const orderBy = resolveSort<Prisma.PatientSurgeryOrderByWithRelationInput>(query, SURGERY_SORT_FIELDS, "scheduledStart");
+  const [data, total] = await Promise.all([
+    prisma.patientSurgery.findMany({ where, orderBy, include: SURGERY_INCLUDE, ...pageWindow(query) }),
+    prisma.patientSurgery.count({ where }),
+  ]);
+  return buildPaginatedResult(data, total, query);
+}
+
+/** Every surgery overlapping [from, to) — feeds the hospital-ops calendar view. */
+export async function listSurgeriesInRange(tenantId: string, from: Date, to: Date) {
+  return prisma.patientSurgery.findMany({
+    where: { tenantId, scheduledStart: { lt: to }, scheduledEnd: { gt: from } },
+    orderBy: { scheduledStart: "asc" },
+    include: SURGERY_INCLUDE,
+  });
+}
+
+export async function exportSurgeries(tenantId: string, search?: string) {
+  const rows = await prisma.patientSurgery.findMany({
+    where: buildSurgeryWhere(tenantId, search),
+    orderBy: { scheduledStart: "desc" },
+    include: SURGERY_INCLUDE,
+    take: EXPORT_ROW_LIMIT,
+  });
+  return rows.map((row) => serializeForCsv(row));
+}
+
+export async function createSurgery(tenantId: string, input: SurgeryInput) {
+  await Promise.all([assertPatientExists(tenantId, input.patientId), assertStaffMemberExists(tenantId, input.surgeonId)]);
+  return prisma.patientSurgery.create({ data: { tenantId, ...input }, include: SURGERY_INCLUDE });
+}
+
+export async function updateSurgery(tenantId: string, id: string, input: Partial<SurgeryInput>) {
+  const existing = await prisma.patientSurgery.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!existing) throw AppError.notFound("Surgery not found");
+  if (input.patientId) await assertPatientExists(tenantId, input.patientId);
+  if (input.surgeonId) await assertStaffMemberExists(tenantId, input.surgeonId);
+  return prisma.patientSurgery.update({ where: { id }, data: input, include: SURGERY_INCLUDE });
+}
+
+export async function deleteSurgery(tenantId: string, id: string): Promise<void> {
+  const existing = await prisma.patientSurgery.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!existing) throw AppError.notFound("Surgery not found");
+  await prisma.patientSurgery.delete({ where: { id } });
 }
 
 // ============================================================

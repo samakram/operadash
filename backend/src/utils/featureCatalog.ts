@@ -24,6 +24,9 @@ export const FEATURE_CATALOG: Record<ModuleName, { key: string; label: string }[
     { key: "lab-results", label: "Lab Results" },
     { key: "insurance", label: "Insurance" },
     { key: "billing", label: "Billing" },
+    { key: "staff", label: "Hospital Staff" },
+    { key: "shifts", label: "Shift Scheduling" },
+    { key: "surgery", label: "Surgery" },
   ],
   restaurant: [
     { key: "shifts", label: "Staff Shifts" },
