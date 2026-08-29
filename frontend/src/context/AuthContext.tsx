@@ -17,9 +17,12 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
+  impersonating: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
+  returnToAdmin: () => Promise<void>;
+  impersonateTenant: (tenantId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -27,13 +30,16 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [impersonating, setImpersonating] = useState(false);
 
   const fetchMe = useCallback(async () => {
     try {
-      const { data } = await api.get<{ user: AuthUser }>("/auth/me");
+      const { data } = await api.get<{ user: AuthUser; impersonating: boolean }>("/auth/me");
       setUser(data.user);
+      setImpersonating(data.impersonating);
     } catch {
       setUser(null);
+      setImpersonating(false);
     } finally {
       setIsLoading(false);
     }
@@ -61,11 +67,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await api.post("/auth/logout").catch(() => undefined);
     setUser(null);
+    setImpersonating(false);
+  }, []);
+
+  const returnToAdmin = useCallback(async () => {
+    const { data } = await api.post<{ user: AuthUser }>("/auth/return-to-admin");
+    setUser(data.user);
+    setImpersonating(false);
+  }, []);
+
+  const impersonateTenant = useCallback(async (tenantId: string) => {
+    const { data } = await api.post<{ user: AuthUser }>(`/tenants/${tenantId}/impersonate`);
+    setUser(data.user);
+    setImpersonating(true);
   }, []);
 
   const value = useMemo(
-    () => ({ user, isLoading, login, logout, refetch: fetchMe }),
-    [user, isLoading, login, logout, fetchMe],
+    () => ({ user, isLoading, impersonating, login, logout, refetch: fetchMe, returnToAdmin, impersonateTenant }),
+    [user, isLoading, impersonating, login, logout, fetchMe, returnToAdmin, impersonateTenant],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

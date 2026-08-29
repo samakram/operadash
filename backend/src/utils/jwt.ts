@@ -6,11 +6,14 @@ export interface AccessTokenPayload {
   tenantId: string | null;
   role: Role;
   permissions: string[];
+  /** Set when a super_admin is impersonating this user — the super admin's own userId. */
+  impersonatedBy?: string;
 }
 
 export interface RefreshTokenPayload {
   userId: string;
   tokenVersion: number;
+  impersonatedBy?: string;
 }
 
 const ACCESS_SECRET = requireSecret("JWT_ACCESS_SECRET");

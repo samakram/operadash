@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/database/db";
 import { AppError } from "@/utils/errors";
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@/utils/jwt";
+import { signAccessToken, signRefreshToken, verifyRefreshToken, type AccessTokenPayload } from "@/utils/jwt";
 import { sendPasswordResetEmail } from "@/services/email.service";
 import { logger } from "@/utils/logger";
 import type { User } from "@prisma/client";
@@ -58,8 +58,51 @@ export async function refreshAccessToken(refreshToken: string) {
     throw AppError.unauthorized("Account is no longer active");
   }
 
-  const accessToken = signAccessToken({ userId: user.id, tenantId: user.tenantId, role: user.role });
+  const accessToken = signAccessToken({
+    userId: user.id,
+    tenantId: user.tenantId,
+    role: user.role,
+    impersonatedBy: payload.impersonatedBy,
+  });
   return { user: sanitizeUser(user), accessToken };
+}
+
+/** Lets a super_admin sign in as a tenant's admin without knowing their password — e.g. to debug or demo their view. */
+export async function impersonateTenant(superAdminId: string, tenantId: string) {
+  const target = await prisma.user.findFirst({
+    where: { tenantId, role: "tenant_admin", active: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!target) {
+    throw AppError.notFound("This tenant has no active admin to sign in as");
+  }
+
+  const accessToken = signAccessToken({
+    userId: target.id,
+    tenantId: target.tenantId,
+    role: target.role,
+    impersonatedBy: superAdminId,
+  });
+  const refreshToken = signRefreshToken({ userId: target.id, tokenVersion: 0, impersonatedBy: superAdminId });
+
+  return { user: sanitizeUser(target), accessToken, refreshToken };
+}
+
+/** Ends an impersonation session and restores the original super_admin's own session. */
+export async function returnToAdmin(auth: AccessTokenPayload) {
+  if (!auth.impersonatedBy) {
+    throw AppError.badRequest("Not currently impersonating a tenant");
+  }
+
+  const superAdmin = await prisma.user.findUnique({ where: { id: auth.impersonatedBy } });
+  if (!superAdmin || !superAdmin.active || superAdmin.role !== "super_admin") {
+    throw AppError.unauthorized("The original admin account is no longer available");
+  }
+
+  const accessToken = signAccessToken({ userId: superAdmin.id, tenantId: superAdmin.tenantId, role: superAdmin.role });
+  const refreshToken = signRefreshToken({ userId: superAdmin.id, tokenVersion: 0 });
+
+  return { user: sanitizeUser(superAdmin), accessToken, refreshToken };
 }
 
 export async function getCurrentUser(userId: string) {

@@ -4,21 +4,9 @@ import * as authService from "@/services/auth.service";
 import { authenticate, COOKIE_NAMES } from "@/middleware/auth";
 import { authRateLimit } from "@/middleware/rateLimit";
 import { AppError } from "@/utils/errors";
+import { setAuthCookies, clearAuthCookies } from "@/utils/cookies";
 
 const router = Router();
-
-const isProd = process.env.NODE_ENV === "production";
-// In production the API (Railway) and app (Vercel) live on different domains,
-// so the session cookie is cross-site: it needs SameSite=None, which browsers
-// only honor when Secure is also set. Locally, Vite proxies /api so the app is
-// same-origin and plain Lax works without needing HTTPS in dev.
-const isSecure = process.env.COOKIE_SECURE === "true" || isProd;
-const cookieBase = {
-  httpOnly: true,
-  secure: isSecure,
-  sameSite: (isSecure ? "none" : "lax") as "none" | "lax",
-  path: "/",
-};
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -30,8 +18,7 @@ router.post("/login", authRateLimit, async (req, res, next) => {
     const { email, password } = loginSchema.parse(req.body);
     const { user, accessToken, refreshToken } = await authService.login(email, password);
 
-    res.cookie(COOKIE_NAMES.ACCESS_COOKIE, accessToken, { ...cookieBase, maxAge: 24 * 60 * 60 * 1000 });
-    res.cookie(COOKIE_NAMES.REFRESH_COOKIE, refreshToken, { ...cookieBase, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    setAuthCookies(res, accessToken, refreshToken);
     res.json({ user });
   } catch (err) {
     next(err);
@@ -39,8 +26,7 @@ router.post("/login", authRateLimit, async (req, res, next) => {
 });
 
 router.post("/logout", (_req, res) => {
-  res.clearCookie(COOKIE_NAMES.ACCESS_COOKIE, cookieBase);
-  res.clearCookie(COOKIE_NAMES.REFRESH_COOKIE, cookieBase);
+  clearAuthCookies(res);
   res.status(204).send();
 });
 
@@ -51,7 +37,17 @@ router.post("/refresh", authRateLimit, async (req, res, next) => {
       throw AppError.unauthorized("No refresh token provided");
     }
     const { user, accessToken } = await authService.refreshAccessToken(refreshToken);
-    res.cookie(COOKIE_NAMES.ACCESS_COOKIE, accessToken, { ...cookieBase, maxAge: 24 * 60 * 60 * 1000 });
+    setAuthCookies(res, accessToken);
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/return-to-admin", authenticate, async (req, res, next) => {
+  try {
+    const { user, accessToken, refreshToken } = await authService.returnToAdmin(req.auth!);
+    setAuthCookies(res, accessToken, refreshToken);
     res.json({ user });
   } catch (err) {
     next(err);
@@ -61,7 +57,7 @@ router.post("/refresh", authRateLimit, async (req, res, next) => {
 router.get("/me", authenticate, async (req, res, next) => {
   try {
     const user = await authService.getCurrentUser(req.auth!.userId);
-    res.json({ user });
+    res.json({ user, impersonating: Boolean(req.auth!.impersonatedBy) });
   } catch (err) {
     next(err);
   }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Building2, Users as UsersIcon, ExternalLink, Power } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, Building2, Users as UsersIcon, ExternalLink, Power, LogIn } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { AuroraButton } from "@/components/Common/AuroraButton";
@@ -9,6 +9,7 @@ import { Modal } from "@/components/Common/Modal";
 import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
 import { useToast } from "@/components/Common/Toast";
 import { Toggle } from "@/components/Common/Toggle";
+import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency, titleCase } from "@/lib/utils";
 import type { ModuleName, PlanTier, Tenant } from "@/hooks/useTenant";
 
@@ -48,6 +49,8 @@ const emptyForm = {
 
 export default function TenantsList() {
   const { show } = useToast();
+  const { impersonateTenant } = useAuth();
+  const navigate = useNavigate();
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,6 +106,15 @@ export default function TenantsList() {
       await load();
     } catch (err) {
       show(getApiErrorMessage(err, "Failed to update tenant"), "error");
+    }
+  };
+
+  const handleImpersonate = async (tenant: TenantRow) => {
+    try {
+      await impersonateTenant(tenant.id);
+      navigate("/app");
+    } catch (err) {
+      show(getApiErrorMessage(err, "Failed to sign in as this tenant"), "error");
     }
   };
 
@@ -170,6 +182,15 @@ export default function TenantsList() {
                     Manage
                   </AuroraButton>
                 </Link>
+                <AuroraButton
+                  variant="ghost"
+                  size="sm"
+                  icon={<LogIn size={14} />}
+                  onClick={() => handleImpersonate(tenant)}
+                  title="Sign in as this tenant's admin"
+                >
+                  Enter
+                </AuroraButton>
                 <AuroraButton variant="ghost" size="sm" icon={<Power size={14} />} onClick={() => toggleActive(tenant)}>
                   {tenant.active ? "Disable" : "Enable"}
                 </AuroraButton>

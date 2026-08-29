@@ -21,7 +21,7 @@ export default {
           "warning-soft": "#FFF2E0",
           error: "#FF3B30",
           "error-soft": "#FFEBEA",
-          bg: "#F2F2F7",
+          bg: "#FFFFFF",
           surface: "#FFFFFF",
           border: "#E5E5EA",
           text: "#1C1C1E",

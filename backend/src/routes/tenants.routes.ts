@@ -1,9 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import * as tenantService from "@/services/tenant.service";
+import * as authService from "@/services/auth.service";
 import { authenticate, requireRole } from "@/middleware/auth";
 import { paginationSchema } from "@/utils/validators";
 import { AppError } from "@/utils/errors";
+import { setAuthCookies } from "@/utils/cookies";
+import { prisma } from "@/database/db";
 
 const router = Router();
 router.use(authenticate);
@@ -70,6 +73,28 @@ function assertCanAccessTenant(req: import("express").Request, tenantId: string)
   if (req.auth?.tenantId === tenantId) return;
   throw AppError.forbidden("You cannot access another tenant's data");
 }
+
+// Lets a super_admin jump straight into a tenant's admin view (e.g. to demo or
+// debug) without knowing that tenant admin's password.
+router.post("/:id/impersonate", requireRole("super_admin"), async (req, res, next) => {
+  try {
+    const { user, accessToken, refreshToken } = await authService.impersonateTenant(req.auth!.userId, req.params.id);
+    await prisma.auditLog.create({
+      data: {
+        tenantId: req.params.id,
+        userId: req.auth!.userId,
+        action: "impersonate",
+        entityType: "User",
+        entityId: user.id,
+        ipAddress: req.ip,
+      },
+    });
+    setAuthCookies(res, accessToken, refreshToken);
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get("/:id", async (req, res, next) => {
   try {

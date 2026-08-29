@@ -80,4 +80,17 @@ router.delete("/:id", requireRole("super_admin", "tenant_admin"), async (req, re
   }
 });
 
+const setPasswordSchema = z.object({ newPassword: z.string().min(8) });
+
+router.post("/:id/password", requireRole("super_admin", "tenant_admin"), async (req, res, next) => {
+  try {
+    const { newPassword } = setPasswordSchema.parse(req.body);
+    const scopeTenantId = req.auth!.role === "tenant_admin" ? req.auth!.tenantId! : null;
+    await userService.setUserPassword(req.params.id, scopeTenantId, newPassword);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
