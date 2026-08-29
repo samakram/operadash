@@ -28,6 +28,13 @@ interface TenantDetailResponse extends Tenant {
   createdAt: string;
 }
 
+interface FeatureFlagRow {
+  moduleName: ModuleName;
+  featureName: string;
+  label: string;
+  enabled: boolean;
+}
+
 const ALL_MODULES: ModuleName[] = ["hotel", "student", "patient", "restaurant"];
 const PLAN_OPTIONS: { value: PlanTier; label: string }[] = [
   { value: "free", label: "Free" },
@@ -54,6 +61,7 @@ export default function TenantDetail() {
   const [tenant, setTenant] = useState<TenantDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [features, setFeatures] = useState<FeatureFlagRow[]>([]);
 
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [userForm, setUserForm] = useState(emptyUserForm);
@@ -70,8 +78,12 @@ export default function TenantDetail() {
     if (!id) return;
     setIsLoading(true);
     try {
-      const { data } = await api.get<TenantDetailResponse>(`/tenants/${id}`);
+      const [{ data }, { data: featureData }] = await Promise.all([
+        api.get<TenantDetailResponse>(`/tenants/${id}`),
+        api.get<FeatureFlagRow[]>(`/tenants/${id}/features`),
+      ]);
       setTenant(data);
+      setFeatures(featureData);
     } catch (err) {
       show(getApiErrorMessage(err, "Failed to load tenant"), "error");
     } finally {
@@ -83,6 +95,20 @@ export default function TenantDetail() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const toggleFeature = async (row: FeatureFlagRow) => {
+    if (!tenant) return;
+    try {
+      const { data } = await api.patch<FeatureFlagRow[]>(`/tenants/${tenant.id}/features`, {
+        moduleName: row.moduleName,
+        featureName: row.featureName,
+        enabled: !row.enabled,
+      });
+      setFeatures(data);
+    } catch (err) {
+      show(getApiErrorMessage(err, "Failed to update feature"), "error");
+    }
+  };
 
   const toggleModule = async (m: ModuleName) => {
     if (!tenant) return;
@@ -225,6 +251,31 @@ export default function TenantDetail() {
           <p className="text-sm text-aurora-text/60">{tenant.users.length} user{tenant.users.length === 1 ? "" : "s"}</p>
         </GlassCard>
       </div>
+
+      {tenant.enabledModules.length > 0 && (
+        <GlassCard className="flex flex-col gap-4">
+          <div>
+            <h3>Module features</h3>
+            <p className="mt-0.5 text-sm text-aurora-text/60">Turn off specific features within each enabled module for this tenant.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {tenant.enabledModules.map((m) => {
+              const rows = features.filter((f) => f.moduleName === m);
+              if (rows.length === 0) return null;
+              return (
+                <div key={m} className="flex flex-col gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-aurora-text/40">{titleCase(m)}</p>
+                  {rows.map((row) => (
+                    <div key={row.featureName} className="rounded-lg px-2 py-1.5 hover:bg-black/5">
+                      <Toggle size="sm" label={row.label} checked={row.enabled} onChange={() => toggleFeature(row)} />
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </GlassCard>
+      )}
 
       <GlassCard padding="none">
         <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">

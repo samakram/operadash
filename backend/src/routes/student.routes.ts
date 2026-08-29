@@ -5,6 +5,7 @@ import * as studentService from "@/services/student.service";
 import { authenticate, requireRole } from "@/middleware/auth";
 import { resolveTenant } from "@/middleware/tenantIsolation";
 import { requireModule } from "@/middleware/moduleGuard";
+import { requireFeature } from "@/middleware/featureGuard";
 import { paginationSchema } from "@/utils/validators";
 import { sendCsv } from "@/utils/csv";
 import { recordAudit } from "@/utils/audit";
@@ -13,6 +14,11 @@ const router = Router();
 router.use(authenticate, resolveTenant, requireModule("student"));
 // Staff can read/create/update within the module; deleting is admin-only.
 router.delete("*", requireRole("tenant_admin", "super_admin"));
+// Optional sub-features a tenant admin can turn off — see utils/featureCatalog.ts.
+router.use("/attendance", requireFeature("student", "attendance"));
+router.use("/grades", requireFeature("student", "grades"));
+router.use("/tuition", requireFeature("student", "tuition"));
+router.use("/announcements", requireFeature("student", "announcements"));
 
 const exportQuerySchema = z.object({ search: z.string().trim().optional() });
 

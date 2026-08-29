@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import * as tenantService from "@/services/tenant.service";
 import * as authService from "@/services/auth.service";
+import * as featureFlagService from "@/services/featureFlag.service";
 import { authenticate, requireRole } from "@/middleware/auth";
 import { paginationSchema } from "@/utils/validators";
 import { AppError } from "@/utils/errors";
@@ -138,6 +139,26 @@ router.delete("/:id", requireRole("super_admin"), async (req, res, next) => {
   try {
     await tenantService.deleteTenant(req.params.id);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/:id/features", requireRole("super_admin"), async (req, res, next) => {
+  try {
+    res.json(await featureFlagService.listFeatureFlags(req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+const setFeatureSchema = z.object({ moduleName: moduleEnum, featureName: z.string().min(1), enabled: z.boolean() });
+
+router.patch("/:id/features", requireRole("super_admin"), async (req, res, next) => {
+  try {
+    const { moduleName, featureName, enabled } = setFeatureSchema.parse(req.body);
+    await featureFlagService.setFeatureFlag(req.params.id, moduleName, featureName, enabled);
+    res.json(await featureFlagService.listFeatureFlags(req.params.id));
   } catch (err) {
     next(err);
   }
