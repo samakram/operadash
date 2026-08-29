@@ -56,3 +56,21 @@ export async function setTicketStatus(ticketId: string, tenantId: string | null,
   await assertTicketAccess(ticketId, tenantId);
   return prisma.supportTicket.update({ where: { id: ticketId }, data: { status } });
 }
+
+/**
+ * "Awaiting your reply" count — no read-receipt tracking exists, so this uses a
+ * reasonable proxy instead: open tickets whose most recent message was sent by
+ * the other side. Good enough for a notification badge.
+ */
+export async function countAwaitingReply(tenantId: string | null, viewerIsSuperAdmin: boolean): Promise<number> {
+  const openTickets = await prisma.supportTicket.findMany({
+    where: { status: "open", ...(tenantId ? { tenantId } : {}) },
+    select: { messages: { orderBy: { createdAt: "desc" }, take: 1, select: { senderRole: true } } },
+  });
+  return openTickets.filter((t) => {
+    const lastSenderRole = t.messages[0]?.senderRole;
+    if (!lastSenderRole) return false;
+    const lastWasSuperAdmin = lastSenderRole === "super_admin";
+    return lastWasSuperAdmin !== viewerIsSuperAdmin;
+  }).length;
+}

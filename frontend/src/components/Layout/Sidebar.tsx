@@ -35,6 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
+import { useSupportBadge } from "@/hooks/useSupportBadge";
 import type { ModuleName } from "@/hooks/useTenant";
 
 interface SubNavItem {
@@ -108,13 +109,14 @@ const MODULE_FEATURES: Record<ModuleName, SubNavItem[]> = {
 function useNavItems(): NavItem[] {
   const { user } = useAuth();
   const { tenant } = useTenant();
+  const supportBadge = useSupportBadge();
 
   return user?.role === "super_admin"
     ? [
         { to: "/admin/tenants", label: "Tenants", icon: Building2 },
         { to: "/admin/modules", label: "Modules", icon: Blocks },
         { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-        { to: "/admin/support", label: "Support", icon: MessageCircle },
+        { to: "/admin/support", label: "Support", icon: MessageCircle, badge: supportBadge },
         { to: "/admin/settings", label: "Settings", icon: Settings },
       ]
     : [
@@ -126,7 +128,7 @@ function useNavItems(): NavItem[] {
               { to: "/app/audit-log", label: "Audit Log", icon: ScrollText },
             ]
           : []),
-        { to: "/app/support", label: "Support", icon: MessageCircle },
+        { to: "/app/support", label: "Support", icon: MessageCircle, badge: supportBadge },
       ];
 }
 
@@ -178,7 +180,12 @@ function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => v
               }
             >
               <item.icon size={18} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {Boolean(item.badge) && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-aurora-error px-1.5 text-[11px] font-bold text-white">
+                  {item.badge}
+                </span>
+              )}
             </NavLink>
             {isModuleActive && item.moduleKey && (
               <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-aurora-border pl-3">

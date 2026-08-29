@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
+import { useSupportBadge } from "@/hooks/useSupportBadge";
 import { useToast } from "@/components/Common/Toast";
 import { initials } from "@/lib/utils";
 
@@ -97,6 +98,9 @@ export function Navbar({ onOpenMobileNav }: { onOpenMobileNav?: () => void }) {
     navigate("/login");
   };
 
+  const supportCount = useSupportBadge();
+  const supportPath = user?.role === "super_admin" ? "/admin/support" : "/app/support";
+
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-black/10 bg-black/[0.02] px-4 sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
@@ -113,10 +117,16 @@ export function Navbar({ onOpenMobileNav }: { onOpenMobileNav?: () => void }) {
       <div className="flex items-center gap-2 sm:gap-3">
         {user?.role === "super_admin" && <TenantSwitcher />}
         <button
-          className="hidden rounded-lg p-2 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text sm:block"
+          onClick={() => navigate(supportPath)}
+          className="relative hidden rounded-lg p-2 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text sm:block"
           aria-label="Notifications"
         >
           <Bell size={18} />
+          {supportCount > 0 && (
+            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-aurora-error px-1 text-[10px] font-bold text-white">
+              {supportCount > 9 ? "9+" : supportCount}
+            </span>
+          )}
         </button>
         <button
           className="hidden rounded-lg p-2 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text sm:block"

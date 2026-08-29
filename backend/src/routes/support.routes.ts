@@ -36,6 +36,14 @@ router.post("/tickets", requireRole("tenant_admin", "staff"), async (req, res, n
   }
 });
 
+router.get("/tickets/awaiting-reply-count", async (req, res, next) => {
+  try {
+    res.json({ count: await supportService.countAwaitingReply(scopeTenantId(req), req.auth!.role === "super_admin") });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/tickets", async (req, res, next) => {
   try {
     const status = req.query.status ? statusEnum.parse(req.query.status) : undefined;

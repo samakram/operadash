@@ -22,8 +22,7 @@ import HotelCRM from "@/pages/HotelCRM";
 import StudentCRM from "@/pages/StudentCRM";
 import PatientCRM from "@/pages/PatientCRM";
 import RestaurantCRM from "@/pages/RestaurantCRM";
-import SupportPage from "@/pages/SupportPage";
-import SupportTicketDetail from "@/pages/SupportTicketDetail";
+import SupportInbox from "@/pages/SupportInbox";
 import AuditLogPage from "@/pages/AuditLogPage";
 
 function RootRedirect() {
@@ -59,8 +58,8 @@ export default function App() {
               <Route path="tenants/:id/audit-log" element={<AuditLogPage />} />
               <Route path="modules" element={<ModulesPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="support" element={<SupportPage />} />
-              <Route path="support/:id" element={<SupportTicketDetail />} />
+              <Route path="support" element={<SupportInbox />} />
+              <Route path="support/:id" element={<SupportInbox />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route index element={<Navigate to="tenants" replace />} />
             </Route>
@@ -80,8 +79,8 @@ export default function App() {
               <Route path="student/*" element={<StudentCRM />} />
               <Route path="patient/*" element={<PatientCRM />} />
               <Route path="restaurant/*" element={<RestaurantCRM />} />
-              <Route path="support" element={<SupportPage />} />
-              <Route path="support/:id" element={<SupportTicketDetail />} />
+              <Route path="support" element={<SupportInbox />} />
+              <Route path="support/:id" element={<SupportInbox />} />
               <Route
                 path="staff"
                 element={
