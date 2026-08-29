@@ -6,6 +6,18 @@ import { GlassInput } from "@/components/Common/GlassInput";
 import { AuroraButton } from "@/components/Common/AuroraButton";
 import { useToast } from "@/components/Common/Toast";
 
+function InfoCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <GlassCard padding="sm" className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-aurora-accent-soft text-aurora-accent">{icon}</div>
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      <p className="text-xs leading-relaxed text-aurora-text/60">{children}</p>
+    </GlassCard>
+  );
+}
+
 export default function SettingsPage() {
   const { show } = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
@@ -34,12 +46,14 @@ export default function SettingsPage() {
         <p className="mt-1 text-sm text-aurora-text/60">Platform administration</p>
       </div>
 
-      <GlassCard className="flex flex-col gap-4">
+      <GlassCard padding="sm" className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <KeyRound size={18} className="text-aurora-cyan" />
-          <h3>Admin account</h3>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-aurora-accent-soft text-aurora-accent">
+            <KeyRound size={16} />
+          </div>
+          <h3 className="text-sm font-semibold">Admin account</h3>
         </div>
-        <form onSubmit={handleChangePassword} className="grid max-w-md gap-4">
+        <form onSubmit={handleChangePassword} className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_1fr_auto]">
           <GlassInput
             label="Current password"
             type="password"
@@ -55,49 +69,27 @@ export default function SettingsPage() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
-          <AuroraButton type="submit" isLoading={isSaving} className="w-fit">
-            Update password
+          <AuroraButton type="submit" isLoading={isSaving}>
+            Update
           </AuroraButton>
         </form>
       </GlassCard>
 
-      <GlassCard className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <Mail size={18} className="text-aurora-blue" />
-          <h3>Email configuration</h3>
-        </div>
-        <p className="text-sm text-aurora-text/60">
-          Welcome emails (on tenant/staff creation) and password-reset links are sent via SMTP, configured with backend
-          environment variables (<code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_HOST</code>,{" "}
-          <code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_USER</code>, etc. — see{" "}
-          <code className="rounded bg-black/10 px-1.5 py-0.5">backend/.env.example</code>). Until{" "}
-          <code className="rounded bg-black/10 px-1.5 py-0.5">SMTP_HOST</code> is set, emails are logged instead of sent, so
-          nothing breaks without a mail provider configured. Appointment/tuition reminder emails from the original spec aren't
-          scheduled anywhere yet — only welcome and password-reset are wired up.
-        </p>
-      </GlassCard>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <InfoCard icon={<Mail size={16} />} title="Email configuration">
+          Welcome and password-reset emails send via SMTP (<code className="rounded bg-black/10 px-1 py-0.5">SMTP_HOST</code> etc. on the
+          backend). Unconfigured, they're logged instead of sent.
+        </InfoCard>
 
-      <GlassCard className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <CreditCard size={18} className="text-aurora-accent" />
-          <h3>Stripe API keys</h3>
-        </div>
-        <p className="text-sm text-aurora-text/60">
-          Test-mode keys are read from <code className="rounded bg-black/10 px-1.5 py-0.5">STRIPE_SECRET_KEY</code> and{" "}
-          <code className="rounded bg-black/10 px-1.5 py-0.5">STRIPE_WEBHOOK_SECRET</code> on the backend. Checkout sessions are created via{" "}
-          <code className="rounded bg-black/10 px-1.5 py-0.5">POST /api/billing/checkout-session</code>.
-        </p>
-      </GlassCard>
+        <InfoCard icon={<CreditCard size={16} />} title="Stripe API keys">
+          Test-mode keys read from <code className="rounded bg-black/10 px-1 py-0.5">STRIPE_SECRET_KEY</code> /{" "}
+          <code className="rounded bg-black/10 px-1 py-0.5">STRIPE_WEBHOOK_SECRET</code> on the backend.
+        </InfoCard>
 
-      <GlassCard className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <Palette size={18} className="text-aurora-accent" />
-          <h3>Brand customization</h3>
-        </div>
-        <p className="text-sm text-aurora-text/60">
+        <InfoCard icon={<Palette size={16} />} title="Brand customization">
           Per-tenant logo upload is available on each tenant's detail page.
-        </p>
-      </GlassCard>
+        </InfoCard>
+      </div>
     </div>
   );
 }
