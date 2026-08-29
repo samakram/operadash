@@ -22,6 +22,12 @@ const BCRYPT_ROUNDS = 12;
 // full compare time, letting an attacker enumerate valid emails by timing.
 const DUMMY_HASH = "$2a$12$CwTycUXWue0Thq9StjUM0uJ8lo6bnvUpBaG.G/JJaB0hVKvhZi.Wq";
 
+// Per-account lockout — IP-based rate limiting (see middleware/rateLimit.ts)
+// doesn't cover an attacker distributing attempts across many IPs/a botnet
+// against one known account.
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+
 export function sanitizeUser(user: User) {
   const { password: _password, ...safe } = user;
   return safe;
@@ -34,9 +40,28 @@ export async function hashPassword(plain: string): Promise<string> {
 export async function login(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
 
+  if (user?.lockedUntil && user.lockedUntil > new Date()) {
+    throw AppError.unauthorized("Too many failed attempts. Try again in a few minutes.");
+  }
+
   const matches = await bcrypt.compare(password, user?.password ?? DUMMY_HASH);
   if (!user || !user.active || !matches) {
+    if (user) {
+      const attempts = user.failedLoginAttempts + 1;
+      const shouldLock = attempts >= MAX_FAILED_ATTEMPTS;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: shouldLock ? 0 : attempts,
+          lockedUntil: shouldLock ? new Date(Date.now() + LOCKOUT_DURATION_MS) : null,
+        },
+      });
+    }
     throw AppError.unauthorized("Invalid email or password");
+  }
+
+  if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+    await prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
   }
 
   const accessToken = signAccessToken({ userId: user.id, tenantId: user.tenantId, role: user.role });

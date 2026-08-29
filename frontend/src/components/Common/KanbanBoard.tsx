@@ -40,7 +40,7 @@ function DroppableColumn({ id, children }: { id: string; children: ReactNode }) 
     <div
       ref={setNodeRef}
       className={cn(
-        "flex h-full flex-col gap-2 rounded-2xl border border-black/5 bg-black/[0.02] p-2 transition-colors duration-200",
+        "flex h-full flex-col gap-2 overflow-y-auto rounded-2xl border border-black/5 bg-black/[0.02] p-2 transition-colors duration-200",
         isOver && "border-aurora-accent/30 bg-aurora-accent/[0.05]",
       )}
     >
@@ -73,11 +73,11 @@ export function KanbanBoard<T extends { id: string }>({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-2">
+      <div className="flex min-h-[70vh] flex-1 gap-4 overflow-x-auto pb-2">
         {columns.map((column) => {
           const columnItems = items.filter((item) => getColumnId(item) === column.id);
           return (
-            <div key={column.id} className="w-72 shrink-0">
+            <div key={column.id} className="flex min-w-[240px] flex-1 flex-col">
               <div className="mb-2 flex items-center justify-between px-1">
                 <span className={cn("text-sm font-semibold", column.accentClass ?? "text-aurora-text/80")}>{column.label}</span>
                 <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-aurora-text/50">{columnItems.length}</span>

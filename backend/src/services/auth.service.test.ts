@@ -25,6 +25,8 @@ function makeUser(overrides: Partial<User> = {}): User {
     active: true,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
+    failedLoginAttempts: 0,
+    lockedUntil: null,
     ...overrides,
   };
 }
@@ -100,6 +102,42 @@ describe("auth.service", () => {
       expect(result.refreshToken).toEqual(expect.any(String));
       expect(result.user).not.toHaveProperty("password");
       expect(result.user.email).toBe("admin@operadash.com");
+    });
+
+    it("rejects a locked account even with the correct password, without running bcrypt", async () => {
+      const compareSpy = vi.spyOn(bcrypt, "compare");
+      const realHash = await bcrypt.hash("correct-password", 4);
+      prismaMock.user.findUnique.mockResolvedValue(
+        makeUser({ password: realHash, lockedUntil: new Date(Date.now() + 60_000) }),
+      );
+
+      await expect(authService.login("admin@operadash.com", "correct-password")).rejects.toMatchObject({ statusCode: 401 });
+      expect(compareSpy).not.toHaveBeenCalled();
+      compareSpy.mockRestore();
+    });
+
+    it("locks the account once failed attempts reach the threshold", async () => {
+      const realHash = await bcrypt.hash("correct-password", 4);
+      prismaMock.user.findUnique.mockResolvedValue(makeUser({ password: realHash, failedLoginAttempts: 4 }));
+
+      await expect(authService.login("admin@operadash.com", "wrong-password")).rejects.toMatchObject({ statusCode: 401 });
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        data: { failedLoginAttempts: 0, lockedUntil: expect.any(Date) },
+      });
+    });
+
+    it("resets failedLoginAttempts on a successful login", async () => {
+      const realHash = await bcrypt.hash("correct-password", 4);
+      prismaMock.user.findUnique.mockResolvedValue(makeUser({ password: realHash, failedLoginAttempts: 2 }));
+
+      await authService.login("admin@operadash.com", "correct-password");
+
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
     });
   });
 

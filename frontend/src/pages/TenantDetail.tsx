@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X } from "lucide-react";
+import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2 } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { AuroraButton } from "@/components/Common/AuroraButton";
@@ -73,6 +73,10 @@ export default function TenantDetail() {
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   const [deleteUserTarget, setDeleteUserTarget] = useState<TenantUser | null>(null);
+
+  const [logoModalOpen, setLogoModalOpen] = useState(false);
+  const [logoUrlInput, setLogoUrlInput] = useState("");
+  const [isSavingLogo, setIsSavingLogo] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -192,6 +196,26 @@ export default function TenantDetail() {
     }
   };
 
+  const openLogoModal = () => {
+    setLogoUrlInput(tenant?.logoUrl ?? "");
+    setLogoModalOpen(true);
+  };
+
+  const handleSaveLogo = async () => {
+    if (!tenant) return;
+    setIsSavingLogo(true);
+    try {
+      await api.patch(`/tenants/${tenant.id}`, { logoUrl: logoUrlInput || null });
+      show("Logo updated", "success");
+      setLogoModalOpen(false);
+      await load();
+    } catch (err) {
+      show(getApiErrorMessage(err, "Failed to update logo"), "error");
+    } finally {
+      setIsSavingLogo(false);
+    }
+  };
+
   const handleDeleteUser = async () => {
     if (!deleteUserTarget) return;
     try {
@@ -213,9 +237,23 @@ export default function TenantDetail() {
       </button>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2>{tenant.name}</h2>
-          <p className="mt-1 text-sm text-aurora-text/60">{tenant.subdomain}.operadash.com &middot; created {formatDate(tenant.createdAt)}</p>
+        <div className="flex items-center gap-3">
+          <button onClick={openLogoModal} className="group relative shrink-0" aria-label="Edit tenant logo" title="Edit logo">
+            {tenant.logoUrl ? (
+              <img src={tenant.logoUrl} alt="" className="h-12 w-12 rounded-lg border border-aurora-border object-cover" />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-aurora-accent-soft text-aurora-accent">
+                <Building2 size={20} />
+              </div>
+            )}
+            <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-aurora-accent text-white opacity-0 shadow-glass transition group-hover:opacity-100">
+              <Pencil size={11} />
+            </span>
+          </button>
+          <div>
+            <h2>{tenant.name}</h2>
+            <p className="mt-1 text-sm text-aurora-text/60">{tenant.subdomain}.operadash.com &middot; created {formatDate(tenant.createdAt)}</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <AuroraButton variant="ghost" icon={<LogIn size={16} />} onClick={handleImpersonate}>
@@ -442,6 +480,33 @@ export default function TenantDetail() {
         <p className="text-sm text-aurora-text/70">
           Remove <strong>{deleteUserTarget?.email}</strong> from {tenant.name}? They'll lose access immediately.
         </p>
+      </Modal>
+
+      <Modal
+        open={logoModalOpen}
+        onClose={() => setLogoModalOpen(false)}
+        title="Tenant logo"
+        size="sm"
+        footer={
+          <>
+            <AuroraButton variant="ghost" onClick={() => setLogoModalOpen(false)}>
+              Cancel
+            </AuroraButton>
+            <AuroraButton isLoading={isSavingLogo} onClick={handleSaveLogo}>
+              Save
+            </AuroraButton>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <GlassInput
+            label="Logo image URL"
+            placeholder="https://..."
+            value={logoUrlInput}
+            onChange={(e) => setLogoUrlInput(e.target.value)}
+          />
+          {logoUrlInput && <img src={logoUrlInput} alt="" className="h-16 w-16 rounded-lg border border-aurora-border object-cover" />}
+        </div>
       </Modal>
     </div>
   );
