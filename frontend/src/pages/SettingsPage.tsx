@@ -79,7 +79,7 @@ export default function SettingsPage() {
 
       <GlassCard className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <CreditCard size={18} className="text-aurora-purple" />
+          <CreditCard size={18} className="text-aurora-accent" />
           <h3>Stripe API keys</h3>
         </div>
         <p className="text-sm text-aurora-text/60">
@@ -91,12 +91,11 @@ export default function SettingsPage() {
 
       <GlassCard className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <Palette size={18} className="text-aurora-cyan" />
+          <Palette size={18} className="text-aurora-accent" />
           <h3>Brand customization</h3>
         </div>
         <p className="text-sm text-aurora-text/60">
-          OperaDash ships with the Aurora glassmorphism theme (purple / blue / cyan). Per-tenant logo upload is available on each tenant's
-          detail page.
+          Per-tenant logo upload is available on each tenant's detail page.
         </p>
       </GlassCard>
     </div>

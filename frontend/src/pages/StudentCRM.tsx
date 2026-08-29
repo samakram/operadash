@@ -176,7 +176,7 @@ function TabBar() {
             cn(
               "rounded-t-lg px-4 py-2 text-sm font-medium text-aurora-text/60 transition",
               "hover:bg-black/5 hover:text-aurora-text",
-              isActive && "bg-white text-aurora-purple shadow-glass",
+              isActive && "bg-white text-aurora-accent shadow-glass",
             )
           }
         >
@@ -194,7 +194,7 @@ function TabBar() {
 function KpiCard({ icon: Icon, label, value, hint }: { icon: typeof Users; label: string; value: string; hint?: string }) {
   return (
     <GlassCard className="flex items-center gap-4">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-aurora-gradient">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-aurora-accent">
         <Icon size={22} />
       </div>
       <div>
@@ -469,7 +469,7 @@ function ClassesTab() {
             onClick={() => setSection(s)}
             className={cn(
               "rounded-lg px-3 py-1.5 text-sm font-medium transition",
-              section === s ? "bg-aurora-gradient text-white" : "bg-black/5 text-aurora-text/60 hover:bg-black/10",
+              section === s ? "bg-aurora-accent text-white" : "bg-black/5 text-aurora-text/60 hover:bg-black/10",
             )}
           >
             {titleCase(s)}

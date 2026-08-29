@@ -26,7 +26,7 @@ export function Toggle({ checked, onChange, label, disabled, size = "md" }: Togg
         "relative inline-flex shrink-0 items-center rounded-full transition-colors duration-300 ease-in-out",
         "shadow-inner focus:outline-none focus-visible:ring-2 focus-visible:ring-aurora-cyan/50",
         trackSize[size],
-        checked ? "bg-aurora-gradient" : "bg-black/15",
+        checked ? "bg-aurora-accent" : "bg-black/15",
         disabled && "cursor-not-allowed opacity-40",
       )}
     >

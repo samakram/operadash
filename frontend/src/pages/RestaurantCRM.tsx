@@ -191,7 +191,7 @@ const STATUS_COLORS: Record<string, string> = {
   vacant: "border-aurora-success/40 text-aurora-success",
   occupied: "border-aurora-warning/40 text-aurora-warning",
   reserved: "border-aurora-blue/40 text-aurora-blue",
-  cleaning: "border-aurora-purple/40 text-aurora-purple",
+  cleaning: "border-aurora-accent/40 text-aurora-accent",
   scheduled: "border-aurora-blue/40 text-aurora-blue",
   checked_in: "border-aurora-cyan/40 text-aurora-cyan",
   active: "border-aurora-success/40 text-aurora-success",
@@ -268,7 +268,7 @@ function DashboardTab({ refreshSignal }: { refreshSignal: number }) {
       <div className="stagger-children grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
           <GlassCard key={kpi.label} className="flex items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-aurora-gradient">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-aurora-accent">
               <kpi.icon size={20} />
             </div>
             <div>
@@ -854,7 +854,7 @@ function RestaurantTabBar() {
             cn(
               "rounded-t-lg px-4 py-2 text-sm font-medium text-aurora-text/60 transition",
               "hover:bg-black/5 hover:text-aurora-text",
-              isActive && "bg-white text-aurora-purple shadow-glass",
+              isActive && "bg-white text-aurora-accent shadow-glass",
             )
           }
         >

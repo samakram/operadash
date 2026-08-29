@@ -146,7 +146,7 @@ export default function TenantDetail() {
           {tenant.users.map((u) => (
             <div key={u.id} className="flex items-center justify-between px-6 py-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aurora-gradient text-xs font-bold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aurora-accent text-xs font-bold">
                   {initials(u.firstName, u.lastName)}
                 </div>
                 <div>

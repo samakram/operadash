@@ -38,7 +38,7 @@ export default function TenantDashboard() {
             return (
               <Link key={moduleName} to={meta.to}>
                 <GlassCard interactive className="flex h-full items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-aurora-gradient">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-aurora-accent">
                     <meta.icon size={22} />
                   </div>
                   <div className="flex-1">

@@ -40,7 +40,7 @@ const gridStroke = "rgba(15, 23, 42, 0.08)";
 function KpiCard({ icon: Icon, label, value, sub }: { icon: typeof DollarSign; label: string; value: string; sub?: string }) {
   return (
     <GlassCard className="flex items-center gap-4">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-aurora-gradient">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-aurora-accent">
         <Icon size={20} />
       </div>
       <div>

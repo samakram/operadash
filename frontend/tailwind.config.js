@@ -6,29 +6,36 @@ export default {
     extend: {
       colors: {
         aurora: {
-          purple: "#7928ca",
-          blue: "#0ea5e9",
-          cyan: "#06b6d4",
-          success: "#10b981",
-          warning: "#f97316",
-          error: "#ec4899",
-          bg: "#f4f5fb",
-          text: "#0f172a",
+          // Flat, single-accent palette — Trello/Atlassian/GHL-style blue, no gradients.
+          purple: "#0C66E4",
+          accent: "#0C66E4",
+          "accent-hover": "#0955C5",
+          "accent-soft": "#E9F2FF",
+          blue: "#0C66E4",
+          cyan: "#0C66E4",
+          success: "#1F845A",
+          "success-soft": "#DCFFF1",
+          warning: "#B76E00",
+          "warning-soft": "#FFF3D6",
+          error: "#C9372C",
+          "error-soft": "#FFECEB",
+          bg: "#F7F8F9",
+          surface: "#FFFFFF",
+          border: "#DFE1E6",
+          text: "#172B4D",
         },
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
-      backdropBlur: {
-        glass: "12px",
-      },
       boxShadow: {
-        glass: "0 8px 32px 0 rgba(15, 23, 42, 0.10)",
-        "glass-hover": "0 12px 40px 0 rgba(121, 40, 202, 0.20)",
+        glass: "0 1px 2px 0 rgba(9, 30, 66, 0.08), 0 0 1px 0 rgba(9, 30, 66, 0.14)",
+        "glass-hover": "0 4px 8px -2px rgba(9, 30, 66, 0.12), 0 0 1px 0 rgba(9, 30, 66, 0.16)",
       },
-      backgroundImage: {
-        "aurora-gradient": "linear-gradient(135deg, #7928ca 0%, #0ea5e9 50%, #06b6d4 100%)",
-        "aurora-radial": "radial-gradient(circle at top left, rgba(121,40,202,0.12), transparent 50%), radial-gradient(circle at bottom right, rgba(14,165,233,0.12), transparent 50%)",
+      borderRadius: {
+        xl: "0.5rem",
+        "2xl": "0.625rem",
+        "3xl": "0.75rem",
       },
       transitionDuration: {
         DEFAULT: "300ms",

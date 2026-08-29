@@ -48,7 +48,7 @@ export function Navbar({ onOpenMobileNav }: { onOpenMobileNav?: () => void }) {
             onClick={() => setMenuOpen((o) => !o)}
             className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-black/10"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aurora-gradient text-xs font-bold">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aurora-accent text-xs font-bold">
               {initials(user?.firstName, user?.lastName)}
             </div>
             <span className="hidden text-sm font-medium sm:inline">{user?.firstName ?? user?.email}</span>

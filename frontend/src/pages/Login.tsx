@@ -38,7 +38,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <GlassCard padding="lg" className="w-full max-w-md animate-slide-in">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-aurora-gradient shadow-glass-hover">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-aurora-accent shadow-glass-hover">
             <Sparkles size={26} />
           </div>
           <h1 className="aurora-text-gradient">OperaDash</h1>

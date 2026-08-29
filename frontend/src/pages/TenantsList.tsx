@@ -128,7 +128,7 @@ export default function TenantsList() {
             <GlassCard key={tenant.id} interactive className="flex flex-col gap-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aurora-gradient">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aurora-accent">
                     <Building2 size={18} />
                   </div>
                   <div>
@@ -144,7 +144,7 @@ export default function TenantsList() {
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <span className="aurora-badge border-aurora-purple/40 text-aurora-purple">{titleCase(tenant.plan)}</span>
+                <span className="aurora-badge border-aurora-accent/40 text-aurora-accent">{titleCase(tenant.plan)}</span>
                 <span className="inline-flex items-center gap-1 text-aurora-text/60">
                   <UsersIcon size={14} /> {tenant._count.users}
                 </span>

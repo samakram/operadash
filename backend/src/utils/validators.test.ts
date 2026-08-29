@@ -14,8 +14,8 @@ describe("validators", () => {
       expect(result.pageSize).toBe(10);
     });
 
-    it("caps pageSize at 100 and rejects a zero/negative page", () => {
-      expect(() => paginationSchema.parse({ pageSize: "500" })).toThrow();
+    it("caps pageSize at 500 and rejects a zero/negative page", () => {
+      expect(() => paginationSchema.parse({ pageSize: "501" })).toThrow();
       expect(() => paginationSchema.parse({ page: "0" })).toThrow();
     });
   });

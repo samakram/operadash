@@ -35,7 +35,7 @@ interface BoardResponse {
 const COLUMNS: KanbanColumn[] = [
   { id: "new", label: "New", accentClass: "text-aurora-blue" },
   { id: "contacted", label: "Contacted", accentClass: "text-aurora-cyan" },
-  { id: "qualified", label: "Qualified", accentClass: "text-aurora-purple" },
+  { id: "qualified", label: "Qualified", accentClass: "text-aurora-accent" },
   { id: "won", label: "Won", accentClass: "text-aurora-success" },
   { id: "lost", label: "Lost", accentClass: "text-aurora-error" },
 ];

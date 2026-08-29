@@ -22,9 +22,6 @@ body,
 
 body {
   @apply bg-aurora-bg text-aurora-text font-sans antialiased;
-  background-image: radial-gradient(circle at top left, rgba(121, 40, 202, 0.1), transparent 50%),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.1), transparent 50%);
-  background-attachment: fixed;
 }
 
 h1 {

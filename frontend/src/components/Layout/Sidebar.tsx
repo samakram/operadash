@@ -52,7 +52,7 @@ function useNavItems(): NavItem[] {
 function Brand() {
   return (
     <div className="mb-6 flex items-center gap-2 px-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-aurora-gradient font-bold">O</div>
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-aurora-accent font-bold">O</div>
       <span className="text-lg font-bold tracking-tight">OperaDash</span>
     </div>
   );
@@ -69,9 +69,9 @@ function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => v
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-aurora-text/70 transition duration-300",
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-aurora-text/70 transition-colors duration-150",
               "hover:bg-black/[0.04] hover:text-aurora-text",
-              isActive && "bg-aurora-gradient text-white shadow-glass-hover hover:bg-aurora-gradient",
+              isActive && "bg-aurora-accent-soft text-aurora-accent hover:bg-aurora-accent-soft",
             )
           }
         >

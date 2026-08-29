@@ -41,7 +41,7 @@ function DroppableColumn({ id, children }: { id: string; children: ReactNode }) 
       ref={setNodeRef}
       className={cn(
         "flex h-full flex-col gap-2 rounded-2xl border border-black/5 bg-black/[0.02] p-2 transition-colors duration-200",
-        isOver && "border-aurora-purple/30 bg-aurora-purple/[0.05]",
+        isOver && "border-aurora-accent/30 bg-aurora-accent/[0.05]",
       )}
     >
       {children}

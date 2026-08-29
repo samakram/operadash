@@ -92,7 +92,7 @@ interface DashboardData {
 function KpiCard({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint?: string }) {
   return (
     <GlassCard className="flex items-center gap-4">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-aurora-gradient">{icon}</div>
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-aurora-accent">{icon}</div>
       <div>
         <p className="text-xs uppercase tracking-wide text-aurora-text/50">{label}</p>
         <p className="text-xl font-bold">{value}</p>
@@ -686,7 +686,7 @@ export default function PatientCRM() {
               cn(
                 "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-aurora-text/60 transition duration-300",
                 "hover:bg-black/10 hover:text-aurora-text",
-                isActive && "bg-white text-aurora-purple shadow-glass",
+                isActive && "bg-white text-aurora-accent shadow-glass",
               )
             }
           >
