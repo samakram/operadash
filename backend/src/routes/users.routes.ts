@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
+import type { ModuleName } from "@prisma/client";
 import * as userService from "@/services/user.service";
+import * as staffPermissionService from "@/services/staffPermission.service";
 import { authenticate, requireRole } from "@/middleware/auth";
 import { paginationSchema } from "@/utils/validators";
 import { AppError } from "@/utils/errors";
@@ -88,6 +90,38 @@ router.post("/:id/password", requireRole("super_admin", "tenant_admin"), async (
     const scopeTenantId = req.auth!.role === "tenant_admin" ? req.auth!.tenantId! : null;
     await userService.setUserPassword(req.params.id, scopeTenantId, newPassword);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ============================================================
+// Per-staff feature permissions — see services/staffPermission.service.ts
+// ============================================================
+
+router.get("/:id/permissions", requireRole("super_admin", "tenant_admin"), async (req, res, next) => {
+  try {
+    const scopeTenantId = req.auth!.role === "tenant_admin" ? req.auth!.tenantId! : null;
+    await userService.assertUserInScope(req.params.id, scopeTenantId);
+    res.json(await staffPermissionService.listPermissionsForUser(req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+const setPermissionSchema = z.object({
+  module: z.enum(["hotel", "student", "patient", "restaurant"]),
+  key: z.string().min(1),
+  allowed: z.boolean(),
+});
+
+router.put("/:id/permissions", requireRole("super_admin", "tenant_admin"), async (req, res, next) => {
+  try {
+    const scopeTenantId = req.auth!.role === "tenant_admin" ? req.auth!.tenantId! : null;
+    await userService.assertUserInScope(req.params.id, scopeTenantId);
+    const { module, key, allowed } = setPermissionSchema.parse(req.body);
+    await staffPermissionService.setStaffPermission(req.params.id, module as ModuleName, key, allowed);
+    res.json(await staffPermissionService.listPermissionsForUser(req.params.id));
   } catch (err) {
     next(err);
   }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Mail, Phone, DollarSign, Pencil, Trash2 } from "lucide-react";
+import { Plus, Mail, Phone, DollarSign, Pencil, Trash2, UserCheck, CheckCircle2 } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { AuroraButton } from "@/components/Common/AuroraButton";
@@ -24,7 +24,15 @@ interface Lead {
   stage: LeadStage;
   source: string | null;
   notes: string | null;
+  convertedRecordId: string | null;
 }
+
+const MODULE_RECORD_LABEL: Record<ModuleName, string> = {
+  hotel: "guest",
+  student: "student",
+  patient: "patient",
+  restaurant: "customer",
+};
 
 interface BoardResponse {
   stages: LeadStage[];
@@ -58,6 +66,9 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
   const [editing, setEditing] = useState<Lead | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [convertTarget, setConvertTarget] = useState<Lead | null>(null);
+  const [convertDob, setConvertDob] = useState("");
+  const [isConverting, setIsConverting] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -156,6 +167,29 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
     }
   };
 
+  const openConvert = (lead: Lead) => {
+    if (module === "patient") {
+      setConvertDob("");
+      setConvertTarget(lead);
+      return;
+    }
+    void doConvert(lead);
+  };
+
+  const doConvert = async (lead: Lead, dateOfBirth?: string) => {
+    setIsConverting(true);
+    try {
+      await api.post(`/leads/${lead.id}/convert`, dateOfBirth ? { dateOfBirth } : {});
+      show(`Converted to a ${MODULE_RECORD_LABEL[module]} record`, "success");
+      setConvertTarget(null);
+      await load();
+    } catch (err) {
+      show(getApiErrorMessage(err, "Failed to convert lead"), "error");
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
   if (isLoading) return <LoadingSpinner fullscreen />;
 
   return (
@@ -215,6 +249,20 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
                 <DollarSign size={11} /> {formatCurrency(lead.estimatedValue)}
               </p>
             )}
+            {lead.stage === "won" &&
+              (lead.convertedRecordId ? (
+                <p className="flex items-center gap-1 text-xs font-medium text-aurora-success">
+                  <CheckCircle2 size={12} /> Converted to {MODULE_RECORD_LABEL[module]}
+                </p>
+              ) : (
+                <button
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => openConvert(lead)}
+                  className="mt-1 flex w-fit items-center gap-1 rounded-full border border-aurora-success/40 px-2 py-1 text-xs font-medium text-aurora-success hover:bg-aurora-success/10"
+                >
+                  <UserCheck size={12} /> Convert to {MODULE_RECORD_LABEL[module]}
+                </button>
+              ))}
           </GlassCard>
         )}
       />
@@ -253,6 +301,26 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
             <GlassTextarea label="Notes" rows={3} value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} />
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(convertTarget)}
+        onClose={() => setConvertTarget(null)}
+        title="Convert to patient"
+        size="sm"
+        footer={
+          <>
+            <AuroraButton variant="ghost" onClick={() => setConvertTarget(null)}>
+              Cancel
+            </AuroraButton>
+            <AuroraButton isLoading={isConverting} disabled={!convertDob} onClick={() => convertTarget && doConvert(convertTarget, convertDob)}>
+              Convert
+            </AuroraButton>
+          </>
+        }
+      >
+        <p className="mb-3 text-sm text-aurora-text/70">A patient record needs a date of birth, which this lead doesn't have yet.</p>
+        <GlassInput label="Date of birth" type="date" required value={convertDob} onChange={(e) => setConvertDob(e.target.value)} />
       </Modal>
     </div>
   );

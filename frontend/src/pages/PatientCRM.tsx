@@ -520,6 +520,7 @@ interface AppointmentRow extends Record<string, unknown> {
   durationMinutes: number;
   reasonForVisit: string | null;
   status: string;
+  reminderSent: boolean;
   patient: { firstName: string; lastName: string } | null;
   provider: { firstName: string; lastName: string } | null;
 }
@@ -540,6 +541,16 @@ function AppointmentsTab() {
     { key: "durationMinutes", header: "Duration", render: (r) => `${r.durationMinutes} min` },
     { key: "reasonForVisit", header: "Reason", render: (r) => r.reasonForVisit ?? "—" },
     { key: "status", header: "Status", sortable: true, render: (r) => <StatusBadge value={r.status} /> },
+    {
+      key: "reminderSent",
+      header: "Reminder",
+      render: (r) =>
+        r.reminderSent ? (
+          <span className="aurora-badge border-aurora-success/40 text-aurora-success">Sent</span>
+        ) : (
+          <span className="aurora-badge border-black/20 text-aurora-text/60">Not sent</span>
+        ),
+    },
   ];
 
   const fields: FieldDef[] = [

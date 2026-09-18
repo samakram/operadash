@@ -3,6 +3,7 @@ import http from "node:http";
 import { createApp } from "@/app";
 import { initSocket } from "@/socket";
 import { connectDatabase, disconnectDatabase } from "@/database/db";
+import { startScheduledJobs } from "@/cron";
 import { logger } from "@/utils/logger";
 
 async function main(): Promise<void> {
@@ -16,6 +17,8 @@ async function main(): Promise<void> {
   httpServer.listen(port, () => {
     logger.info(`OperaDash API listening on port ${port}`);
   });
+
+  startScheduledJobs();
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`Received ${signal}, shutting down gracefully`);

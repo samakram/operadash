@@ -105,6 +105,7 @@ interface TuitionRow extends Record<string, unknown> {
   dueDate: string;
   paidDate: string | null;
   status: string;
+  reminderSent: boolean;
 }
 
 interface AnnouncementRow extends Record<string, unknown> {
@@ -724,6 +725,16 @@ function TuitionTab() {
     { key: "amountPaid", header: "Amount Paid", render: (r) => formatCurrency(r.amountPaid) },
     { key: "dueDate", header: "Due Date", sortable: true, render: (r) => formatDate(r.dueDate) },
     { key: "status", header: "Status", sortable: true, render: (r) => <StatusBadge value={r.status} /> },
+    {
+      key: "reminderSent",
+      header: "Reminder",
+      render: (r) =>
+        r.reminderSent ? (
+          <span className="aurora-badge border-aurora-success/40 text-aurora-success">Sent</span>
+        ) : (
+          <span className="aurora-badge border-black/20 text-aurora-text/60">Not sent</span>
+        ),
+    },
   ];
 
   const fields: FieldDef[] = [

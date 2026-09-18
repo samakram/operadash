@@ -292,6 +292,23 @@ model Tenant {
   @@map("tenants")
 }
 
+// A record of what happened to a tenant's billing state over time — plan
+// changes from the Stripe checkout webhook today, other event types later.
+// Tenant billing has no Subscription/Invoice model of its own; this is a flat
+// timeline rather than trying to mirror Stripe's own invoice objects.
+model BillingEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  type        String    @db.VarChar(50)
+  description String
+  amount      Decimal?  @db.Decimal(10, 2)
+  plan        PlanTier?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("billing_events")
+}
+
 model Module {
   id                String     @id @default(uuid()) @db.Uuid
   name              ModuleName
@@ -330,6 +347,21 @@ model FeatureFlag {
 
   @@unique([tenantId, moduleName, featureName])
   @@map("feature_flags")
+}
+
+// Per-staff-member grant on top of the same module/feature catalog FeatureFlag
+// uses. Row absence means allowed, mirroring FeatureFlag's convention, so
+// enabling this system doesn't silently lock out every existing staff account.
+model StaffPermission {
+  id          String     @id @default(uuid()) @db.Uuid
+  userId      String     @map("user_id") @db.Uuid
+  moduleName  ModuleName @map("module_name")
+  featureName String     @map("feature_name") @db.VarChar(255)
+  allowed     Boolean    @default(true)
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  @@unique([userId, moduleName, featureName])
+  @@map("staff_permissions")
 }
 
 // A tenant's support conversation with the platform (super admin) side —
@@ -400,6 +432,7 @@ model Lead {
   notes            String?
   assignedToUserId String?    @map("assigned_to_user_id") @db.Uuid
   position         Int        @default(0)
+  convertedRecordId String?   @map("converted_record_id") @db.Uuid
   createdAt        DateTime   @default(now()) @map("created_at")
   updatedAt        DateTime   @updatedAt @map("updated_at")
 
@@ -681,6 +714,8 @@ model StudentTuitionRecord {
   paymentMethod String?       @map("payment_method") @db.VarChar(100)
   status        TuitionStatus @default(pending)
   notes         String?
+  reminderSent   Boolean       @default(false) @map("reminder_sent")
+  reminderSentAt DateTime?     @map("reminder_sent_at")
   createdAt     DateTime      @default(now()) @map("created_at")
 
   student StudentStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)

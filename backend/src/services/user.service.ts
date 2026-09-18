@@ -98,6 +98,15 @@ export async function deleteUser(userId: string, tenantId: string | null): Promi
   await prisma.user.delete({ where: { id: userId } });
 }
 
+/** Confirms a user exists and (for a tenant-scoped caller) belongs to that tenant, without mutating anything. */
+export async function assertUserInScope(userId: string, tenantId: string | null) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || (tenantId !== null && user.tenantId !== tenantId)) {
+    throw AppError.notFound("User not found");
+  }
+  return user;
+}
+
 /** Admin-driven password reset — no current-password check, since this is an admin acting on someone else's account. */
 export async function setUserPassword(userId: string, tenantId: string | null, newPassword: string): Promise<void> {
   const user = await prisma.user.findUnique({ where: { id: userId } });

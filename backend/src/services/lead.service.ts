@@ -69,6 +69,74 @@ export async function deleteLead(tenantId: string, id: string): Promise<void> {
 }
 
 // ============================================================
+// LEAD CONVERSION — turns a "Won" lead into the real guest/student/patient/
+// customer record it represents, so the two stop living side by side
+// unlinked. Only allowed once per lead (guarded by convertedRecordId).
+// ============================================================
+
+function splitName(fullName: string | null | undefined): { firstName: string; lastName: string } {
+  const trimmed = (fullName ?? "").trim();
+  if (!trimmed) return { firstName: "Unknown", lastName: "Lead" };
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: "—" };
+  return { firstName: parts.slice(0, -1).join(" "), lastName: parts[parts.length - 1] };
+}
+
+export interface ConvertLeadOptions {
+  /** Required when converting a patient-module lead — Lead has no date-of-birth field to draw from. */
+  dateOfBirth?: string;
+}
+
+export async function convertLead(tenantId: string, id: string, options: ConvertLeadOptions = {}) {
+  const lead = await assertLeadInTenant(tenantId, id);
+  if (lead.convertedRecordId) {
+    throw AppError.conflict("This lead has already been converted");
+  }
+  if (lead.stage !== "won") {
+    throw AppError.badRequest("Only a lead in the Won stage can be converted");
+  }
+
+  const { firstName, lastName } = splitName(lead.contactName);
+  let recordId: string;
+
+  switch (lead.module) {
+    case "hotel": {
+      const guest = await prisma.hotelGuest.create({
+        data: { tenantId, firstName, lastName, email: lead.contactEmail, phone: lead.contactPhone, notes: lead.notes },
+      });
+      recordId = guest.id;
+      break;
+    }
+    case "student": {
+      const student = await prisma.studentStudent.create({
+        data: { tenantId, firstName, lastName, email: lead.contactEmail, phone: lead.contactPhone, enrollmentDate: new Date(), status: "active" },
+      });
+      recordId = student.id;
+      break;
+    }
+    case "patient": {
+      if (!options.dateOfBirth) {
+        throw AppError.badRequest("dateOfBirth is required to convert a patient lead");
+      }
+      const patient = await prisma.patientPatient.create({
+        data: { tenantId, firstName, lastName, email: lead.contactEmail, phone: lead.contactPhone, dateOfBirth: new Date(options.dateOfBirth) },
+      });
+      recordId = patient.id;
+      break;
+    }
+    case "restaurant": {
+      const customer = await prisma.restaurantCustomer.create({
+        data: { tenantId, name: lead.contactName?.trim() || lead.title, email: lead.contactEmail, phone: lead.contactPhone },
+      });
+      recordId = customer.id;
+      break;
+    }
+  }
+
+  return prisma.lead.update({ where: { id }, data: { convertedRecordId: recordId } });
+}
+
+// ============================================================
 // PIPELINE STAGE LABELS — lets a tenant rename "New/Contacted/Qualified/..."
 // per module without touching the underlying LeadStage enum.
 // ============================================================

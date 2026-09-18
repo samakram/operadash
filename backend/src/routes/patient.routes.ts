@@ -4,7 +4,7 @@ import * as patientService from "@/services/patient.service";
 import { authenticate, requireRole } from "@/middleware/auth";
 import { resolveTenant } from "@/middleware/tenantIsolation";
 import { requireModule } from "@/middleware/moduleGuard";
-import { requireFeature } from "@/middleware/featureGuard";
+import { requireFeature, requireStaffFeature } from "@/middleware/featureGuard";
 import { paginationSchema } from "@/utils/validators";
 import { sendCsv } from "@/utils/csv";
 import { recordAudit } from "@/utils/audit";
@@ -14,13 +14,13 @@ router.use(authenticate, resolveTenant, requireModule("patient"));
 // Staff can read/create/update within the module; deleting is admin-only.
 router.delete("*", requireRole("tenant_admin", "super_admin"));
 // Optional sub-features a tenant admin can turn off — see utils/featureCatalog.ts.
-router.use("/vitals", requireFeature("patient", "vitals"));
-router.use("/lab-results", requireFeature("patient", "lab-results"));
-router.use("/insurance", requireFeature("patient", "insurance"));
-router.use("/billing", requireFeature("patient", "billing"));
-router.use("/staff", requireFeature("patient", "staff"));
-router.use("/shifts", requireFeature("patient", "shifts"));
-router.use("/surgery", requireFeature("patient", "surgery"));
+router.use("/vitals", requireFeature("patient", "vitals"), requireStaffFeature("patient", "vitals"));
+router.use("/lab-results", requireFeature("patient", "lab-results"), requireStaffFeature("patient", "lab-results"));
+router.use("/insurance", requireFeature("patient", "insurance"), requireStaffFeature("patient", "insurance"));
+router.use("/billing", requireFeature("patient", "billing"), requireStaffFeature("patient", "billing"));
+router.use("/staff", requireFeature("patient", "staff"), requireStaffFeature("patient", "staff"));
+router.use("/shifts", requireFeature("patient", "shifts"), requireStaffFeature("patient", "shifts"));
+router.use("/surgery", requireFeature("patient", "surgery"), requireStaffFeature("patient", "surgery"));
 
 // ============================================================
 // Shared zod helpers

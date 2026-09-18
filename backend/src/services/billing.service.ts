@@ -3,7 +3,7 @@ import type { PlanTier } from "@prisma/client";
 import { prisma } from "@/database/db";
 import { AppError } from "@/utils/errors";
 
-const PLAN_PRICES_USD: Record<PlanTier, number> = {
+export const PLAN_PRICES_USD: Record<PlanTier, number> = {
   free: 0,
   starter: 29,
   pro: 99,
@@ -73,6 +73,22 @@ export async function handleWebhookEvent(rawBody: Buffer, signature: string): Pr
         where: { id: tenantId },
         data: { plan, monthlyRevenue: PLAN_PRICES_USD[plan] },
       });
+      await recordBillingEvent(tenantId, "plan_change", `Upgraded to the ${plan} plan via Stripe checkout`, PLAN_PRICES_USD[plan], plan);
     }
   }
+}
+
+/** A row in the tenant's billing timeline — see prisma schema BillingEvent for why this is a flat log rather than a Stripe-mirrored invoice model. */
+export async function recordBillingEvent(
+  tenantId: string,
+  type: string,
+  description: string,
+  amount?: number,
+  plan?: PlanTier,
+): Promise<void> {
+  await prisma.billingEvent.create({ data: { tenantId, type, description, amount, plan } });
+}
+
+export async function listBillingEvents(tenantId: string) {
+  return prisma.billingEvent.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" } });
 }

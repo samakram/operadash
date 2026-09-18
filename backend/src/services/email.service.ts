@@ -69,3 +69,17 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   const html = `<p>We received a request to reset your OperaDash password. This link expires in 1 hour and can only be used once:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, you can safely ignore this email.</p>`;
   await sendEmail({ to, subject, html, text });
 }
+
+export async function sendTuitionReminderEmail(to: string, studentName: string, amountDue: string, dueDate: string): Promise<void> {
+  const subject = `Tuition payment reminder for ${studentName}`;
+  const text = `This is a reminder that a tuition payment of $${amountDue} for ${studentName} is due on ${dueDate}.\n\nPlease arrange payment before the due date to avoid a late balance.`;
+  const html = `<p>This is a reminder that a tuition payment of <strong>$${amountDue}</strong> for <strong>${studentName}</strong> is due on <strong>${dueDate}</strong>.</p><p>Please arrange payment before the due date to avoid a late balance.</p>`;
+  await sendEmail({ to, subject, html, text });
+}
+
+export async function sendAppointmentReminderEmail(to: string, patientName: string, providerName: string, whenText: string): Promise<void> {
+  const subject = `Appointment reminder`;
+  const text = `Hi ${patientName},\n\nThis is a reminder of your upcoming appointment with ${providerName} on ${whenText}.\n\nPlease contact us if you need to reschedule.`;
+  const html = `<p>Hi ${patientName},</p><p>This is a reminder of your upcoming appointment with <strong>${providerName}</strong> on <strong>${whenText}</strong>.</p><p>Please contact us if you need to reschedule.</p>`;
+  await sendEmail({ to, subject, html, text });
+}
