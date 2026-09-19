@@ -17,6 +17,8 @@ export interface KanbanColumn {
   id: string;
   label: string;
   accentClass?: string;
+  /** Hex color for this column's marker dot + top stripe — without it, every column reads as the same plain white slab. */
+  color?: string;
 }
 
 interface KanbanBoardProps<T extends { id: string }> {
@@ -61,8 +63,9 @@ function ColumnHeader({ column, onRename }: { column: KanbanColumn; onRename?: (
     <button
       onClick={() => onRename && setEditing(true)}
       disabled={!onRename}
-      className={cn("group flex items-center gap-1 text-sm font-semibold", column.accentClass ?? "text-aurora-text/80")}
+      className={cn("group flex items-center gap-1.5 text-sm font-semibold", column.accentClass ?? "text-aurora-text/80")}
     >
+      {column.color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: column.color }} />}
       {column.label}
       {onRename && <Pencil size={11} className="opacity-0 transition group-hover:opacity-50" />}
     </button>
@@ -84,13 +87,15 @@ function DraggableCard({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-function DroppableColumn({ id, children }: { id: string; children: ReactNode }) {
+function DroppableColumn({ id, color, children }: { id: string; color?: string; children: ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <div
       ref={setNodeRef}
+      style={color ? { borderTopColor: color } : undefined}
       className={cn(
-        "flex h-full flex-col gap-2 overflow-y-auto rounded-2xl border border-black/5 bg-white p-2 transition-colors duration-150",
+        "flex h-full flex-col gap-2 overflow-y-auto rounded-2xl border border-black/5 bg-black/[0.015] p-2 transition-colors duration-150",
+        color && "border-t-[3px]",
         isOver && "border-aurora-accent/30 bg-aurora-accent/[0.05]",
       )}
     >
@@ -141,7 +146,7 @@ export function KanbanBoard<T extends { id: string }>({
                 <ColumnHeader column={column} onRename={onRenameColumn ? (label) => onRenameColumn(column.id, label) : undefined} />
                 <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-aurora-text/50">{columnItems.length}</span>
               </div>
-              <DroppableColumn id={column.id}>
+              <DroppableColumn id={column.id} color={column.color}>
                 {columnItems.length === 0 ? (
                   <p className="px-2 py-6 text-center text-xs text-aurora-text/30">{emptyMessage}</p>
                 ) : (

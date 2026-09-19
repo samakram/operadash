@@ -22,16 +22,23 @@ body,
 
 body {
   @apply bg-aurora-bg text-aurora-text font-sans antialiased;
+  font-feature-settings: "cv11", "ss01", "tnum";
 }
 
+/* Headings read as "ink" (near-black) so they stand apart from the slate body
+   copy — a flat single gray/black for everything is what reads as
+   unpolished; a real two-tier hierarchy is what reads as designed. */
 h1 {
-  @apply text-3xl font-bold tracking-tight;
+  @apply text-3xl font-bold tracking-tight text-aurora-ink;
 }
 h2 {
-  @apply text-2xl font-semibold tracking-tight;
+  @apply text-2xl font-semibold tracking-tight text-aurora-ink;
 }
 h3 {
-  @apply text-xl font-semibold;
+  @apply text-lg font-semibold text-aurora-ink;
+}
+h4 {
+  @apply text-sm font-semibold uppercase tracking-wide text-aurora-text/70;
 }
 body,
 p,

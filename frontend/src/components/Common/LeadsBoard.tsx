@@ -40,19 +40,29 @@ interface BoardResponse {
   total: number;
 }
 
+// Distinct hues per stage — aurora-blue/cyan/accent all resolve to the same
+// blue in the shared palette, which is why every column used to look
+// identical. These are local to the pipeline, not a design-system change.
+const STAGE_COLORS: Record<LeadStage, string> = {
+  new: "#6366F1",
+  contacted: "#0EA5E9",
+  qualified: "#F59E0B",
+  won: "#22C55E",
+  lost: "#EF4444",
+};
 const STAGE_ACCENTS: Record<LeadStage, string> = {
-  new: "text-aurora-blue",
-  contacted: "text-aurora-cyan",
-  qualified: "text-aurora-accent",
+  new: "text-aurora-text/80",
+  contacted: "text-aurora-text/80",
+  qualified: "text-aurora-text/80",
   won: "text-aurora-success",
   lost: "text-aurora-error",
 };
 const DEFAULT_COLUMNS: KanbanColumn[] = [
-  { id: "new", label: "New", accentClass: STAGE_ACCENTS.new },
-  { id: "contacted", label: "Contacted", accentClass: STAGE_ACCENTS.contacted },
-  { id: "qualified", label: "Qualified", accentClass: STAGE_ACCENTS.qualified },
-  { id: "won", label: "Won", accentClass: STAGE_ACCENTS.won },
-  { id: "lost", label: "Lost", accentClass: STAGE_ACCENTS.lost },
+  { id: "new", label: "New", accentClass: STAGE_ACCENTS.new, color: STAGE_COLORS.new },
+  { id: "contacted", label: "Contacted", accentClass: STAGE_ACCENTS.contacted, color: STAGE_COLORS.contacted },
+  { id: "qualified", label: "Qualified", accentClass: STAGE_ACCENTS.qualified, color: STAGE_COLORS.qualified },
+  { id: "won", label: "Won", accentClass: STAGE_ACCENTS.won, color: STAGE_COLORS.won },
+  { id: "lost", label: "Lost", accentClass: STAGE_ACCENTS.lost, color: STAGE_COLORS.lost },
 ];
 
 const emptyForm = { title: "", contactName: "", contactEmail: "", contactPhone: "", estimatedValue: "", source: "", notes: "" };
@@ -90,7 +100,7 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
   useEffect(() => {
     api
       .get<{ stage: LeadStage; label: string }[]>("/leads/stage-labels", { params: { module } })
-      .then(({ data }) => setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage] }))))
+      .then(({ data }) => setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage], color: STAGE_COLORS[s.stage] }))))
       .catch(() => undefined);
   }, [module]);
 
@@ -99,7 +109,7 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
     setColumns((prev) => prev.map((c) => (c.id === stage ? { ...c, label: newLabel } : c)));
     try {
       const { data } = await api.patch<{ stage: LeadStage; label: string }[]>("/leads/stage-labels", { module, stage, label: newLabel });
-      setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage] })));
+      setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage], color: STAGE_COLORS[s.stage] })));
     } catch (err) {
       setColumns(previous);
       show(getApiErrorMessage(err, "Failed to rename stage"), "error");
