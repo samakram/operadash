@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2, ScrollText, Receipt, Clock } from "lucide-react";
+import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2, ScrollText, Receipt, Clock, ShieldCheck } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
+import { StaffPermissionsModal } from "@/components/Common/StaffPermissionsModal";
 import { AuroraButton } from "@/components/Common/AuroraButton";
 import { GlassInput, GlassSelect } from "@/components/Common/GlassInput";
 import { Modal } from "@/components/Common/Modal";
@@ -83,6 +84,7 @@ export default function TenantDetail() {
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   const [deleteUserTarget, setDeleteUserTarget] = useState<TenantUser | null>(null);
+  const [permissionsTarget, setPermissionsTarget] = useState<TenantUser | null>(null);
 
   const [logoModalOpen, setLogoModalOpen] = useState(false);
   const [logoUrlInput, setLogoUrlInput] = useState("");
@@ -426,6 +428,16 @@ export default function TenantDetail() {
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 <span className="aurora-badge border-black/20">{titleCase(u.role)}</span>
+                {u.role === "staff" && (
+                  <button
+                    onClick={() => setPermissionsTarget(u)}
+                    className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
+                    aria-label="Module permissions"
+                    title="Module permissions"
+                  >
+                    <ShieldCheck size={16} />
+                  </button>
+                )}
                 <button
                   onClick={() => openResetPassword(u)}
                   className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
@@ -632,6 +644,12 @@ export default function TenantDetail() {
           />
         </div>
       </Modal>
+
+      <StaffPermissionsModal
+        userId={permissionsTarget?.id ?? null}
+        userName={permissionsTarget ? `${permissionsTarget.firstName ?? ""} ${permissionsTarget.lastName ?? ""}`.trim() || permissionsTarget.email : ""}
+        onClose={() => setPermissionsTarget(null)}
+      />
     </div>
   );
 }

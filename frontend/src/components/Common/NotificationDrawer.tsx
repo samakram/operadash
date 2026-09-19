@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { X, MessageCircle, Bell } from "lucide-react";
+import { MessageCircle, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -74,24 +73,25 @@ export function NotificationDrawer({ open, onClose }: NotificationDrawerProps) {
 
   if (!open) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50">
-      <div className="glass-modal-backdrop absolute inset-0 animate-fade-in" onClick={onClose} />
-      <aside className="glass-card absolute inset-y-0 right-0 flex w-full max-w-sm animate-slide-in flex-col rounded-none rounded-l-2xl">
-        <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-5 py-4">
-          <h3 className="flex items-center gap-2">
-            <Bell size={17} /> Notifications
-          </h3>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text" aria-label="Close">
-            <X size={20} />
-          </button>
+  // A small anchored dropdown next to the bell — not a full-height drawer —
+  // matching the profile menu's own pattern (Navbar.tsx). The parent button
+  // must sit inside a `relative` wrapper for this to position correctly.
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="glass-card animate-fade-in absolute right-0 top-12 z-50 flex max-h-[28rem] w-80 flex-col overflow-hidden !p-0">
+        <div className="flex shrink-0 items-center gap-2 border-b border-black/10 px-4 py-3">
+          <Bell size={15} />
+          <span className="text-sm font-semibold text-aurora-ink">Notifications</span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {isLoading ? (
-            <LoadingSpinner fullscreen />
+            <div className="flex justify-center py-8">
+              <LoadingSpinner />
+            </div>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 p-10 text-center text-sm text-aurora-text/40">
-              <Bell className="opacity-30" size={28} />
+            <div className="flex flex-col items-center gap-2 p-8 text-center text-sm text-aurora-text/40">
+              <Bell className="opacity-30" size={24} />
               You're all caught up
             </div>
           ) : (
@@ -102,10 +102,10 @@ export function NotificationDrawer({ open, onClose }: NotificationDrawerProps) {
                   onClose();
                   navigate(item.to);
                 }}
-                className="flex w-full items-start gap-3 border-b border-black/[0.04] px-5 py-3.5 text-left transition hover:bg-black/[0.03]"
+                className="flex w-full items-start gap-2.5 border-b border-black/[0.04] px-4 py-3 text-left transition last:border-b-0 hover:bg-black/[0.03]"
               >
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-aurora-accent-soft text-aurora-accent">
-                  <MessageCircle size={15} />
+                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-aurora-accent-soft text-aurora-accent">
+                  <MessageCircle size={13} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{item.title}</p>
@@ -115,8 +115,7 @@ export function NotificationDrawer({ open, onClose }: NotificationDrawerProps) {
             ))
           )}
         </div>
-      </aside>
-    </div>,
-    document.body,
+      </div>
+    </>
   );
 }
