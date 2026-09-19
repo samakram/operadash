@@ -4,9 +4,16 @@ import { createApp } from "@/app";
 import { initSocket } from "@/socket";
 import { connectDatabase, disconnectDatabase } from "@/database/db";
 import { startScheduledJobs } from "@/cron";
+import { initMonitoring, captureException } from "@/utils/monitoring";
 import { logger } from "@/utils/logger";
 
 async function main(): Promise<void> {
+  initMonitoring();
+  process.on("unhandledRejection", (err) => {
+    logger.error({ err }, "Unhandled promise rejection");
+    captureException(err);
+  });
+
   await connectDatabase();
 
   const app = createApp();
@@ -35,5 +42,6 @@ async function main(): Promise<void> {
 
 main().catch((err) => {
   logger.error({ err }, "Fatal error during startup");
+  captureException(err);
   process.exit(1);
 });

@@ -31,3 +31,5 @@ services:
         value: admin@operadash.com
       - key: SUPER_ADMIN_PASSWORD
         sync: false
+      - key: SENTRY_DSN
+        sync: false
