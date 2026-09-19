@@ -4,7 +4,7 @@ import * as restaurantService from "@/services/restaurant.service";
 import { authenticate, requireRole } from "@/middleware/auth";
 import { resolveTenant } from "@/middleware/tenantIsolation";
 import { requireModule } from "@/middleware/moduleGuard";
-import { requireFeature } from "@/middleware/featureGuard";
+import { requireFeature, requireStaffFeature } from "@/middleware/featureGuard";
 import { paginationSchema } from "@/utils/validators";
 import { sendCsv } from "@/utils/csv";
 import { recordAudit } from "@/utils/audit";
@@ -15,9 +15,9 @@ router.use(authenticate, resolveTenant, requireModule("restaurant"));
 // Staff can read/create/update within the module; deleting is admin-only.
 router.delete("*", requireRole("tenant_admin", "super_admin"));
 // Optional sub-features a tenant admin can turn off — see utils/featureCatalog.ts.
-router.use("/shifts", requireFeature("restaurant", "shifts"));
-router.use("/inventory", requireFeature("restaurant", "inventory"));
-router.use("/reservations", requireFeature("restaurant", "reservations"));
+router.use("/shifts", requireFeature("restaurant", "shifts"), requireStaffFeature("restaurant", "shifts"));
+router.use("/inventory", requireFeature("restaurant", "inventory"), requireStaffFeature("restaurant", "inventory"));
+router.use("/reservations", requireFeature("restaurant", "reservations"), requireStaffFeature("restaurant", "reservations"));
 
 function toCsvRows(rows: unknown[]): Record<string, unknown>[] {
   return JSON.parse(JSON.stringify(rows)) as Record<string, unknown>[];

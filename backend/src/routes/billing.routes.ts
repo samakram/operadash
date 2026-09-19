@@ -2,9 +2,18 @@ import { Router } from "express";
 import { z } from "zod";
 import * as billingService from "@/services/billing.service";
 import { authenticate, requireRole } from "@/middleware/auth";
+import { resolveTenant } from "@/middleware/tenantIsolation";
 import { AppError } from "@/utils/errors";
 
 const router = Router();
+
+router.get("/history", authenticate, resolveTenant, async (req, res, next) => {
+  try {
+    res.json(await billingService.listBillingEvents(req.tenantId!));
+  } catch (err) {
+    next(err);
+  }
+});
 
 const checkoutSchema = z.object({
   plan: z.enum(["free", "starter", "pro", "enterprise"]),

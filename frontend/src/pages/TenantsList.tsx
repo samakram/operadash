@@ -6,14 +6,14 @@ import { GlassCard } from "@/components/Common/GlassCard";
 import { AuroraButton } from "@/components/Common/AuroraButton";
 import { GlassInput, GlassSelect } from "@/components/Common/GlassInput";
 import { Modal } from "@/components/Common/Modal";
-import { LoadingSpinner } from "@/components/Common/LoadingSpinner";
+import { Table, type Column } from "@/components/Common/Table";
 import { useToast } from "@/components/Common/Toast";
 import { Toggle } from "@/components/Common/Toggle";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency, splitFullName, titleCase } from "@/lib/utils";
 import type { ModuleName, PlanTier, Tenant } from "@/hooks/useTenant";
 
-interface TenantRow extends Tenant {
+interface TenantRow extends Tenant, Record<string, unknown> {
   _count: { users: number };
   createdAt: string;
 }
@@ -35,6 +35,60 @@ const PLAN_OPTIONS: { value: PlanTier; label: string }[] = [
   { value: "starter", label: "Starter" },
   { value: "pro", label: "Pro" },
   { value: "enterprise", label: "Enterprise" },
+];
+
+const tenantColumns: Column<TenantRow>[] = [
+  {
+    key: "name",
+    header: "Tenant",
+    render: (t) => (
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-aurora-accent">
+          <Building2 size={14} />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-aurora-ink">{t.name}</p>
+          <p className="truncate text-[11px] text-aurora-text/45">{t.subdomain}.operadash.com</p>
+        </div>
+      </div>
+    ),
+  },
+  { key: "plan", header: "Plan", render: (t) => <span className="aurora-badge border-aurora-accent/40 text-aurora-accent">{titleCase(t.plan)}</span> },
+  {
+    key: "enabledModules",
+    header: "Modules",
+    render: (t) =>
+      t.enabledModules.length === 0 ? (
+        <span className="text-xs text-aurora-text/40">None</span>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {t.enabledModules.map((m) => (
+            <span key={m} className="aurora-badge !px-1.5 !py-0 border-aurora-blue/40 text-aurora-blue">
+              {titleCase(m)}
+            </span>
+          ))}
+        </div>
+      ),
+  },
+  {
+    key: "users",
+    header: "Users",
+    render: (t) => (
+      <span className="inline-flex items-center gap-1 text-aurora-text/70">
+        <UsersIcon size={13} /> {t._count.users}
+      </span>
+    ),
+  },
+  { key: "monthlyRevenue", header: "Revenue", render: (t) => formatCurrency(t.monthlyRevenue) },
+  {
+    key: "active",
+    header: "Status",
+    render: (t) => (
+      <span className={`aurora-badge ${t.active ? "border-aurora-success/40 text-aurora-success" : "border-aurora-error/40 text-aurora-error"}`}>
+        {t.active ? "Active" : "Disabled"}
+      </span>
+    ),
+  },
 ];
 
 const emptyForm = {
@@ -139,74 +193,38 @@ export default function TenantsList() {
         </AuroraButton>
       </div>
 
-      {isLoading ? (
-        <LoadingSpinner fullscreen />
-      ) : tenants.length === 0 ? (
+      {!isLoading && tenants.length === 0 ? (
         <GlassCard className="py-16 text-center text-aurora-text/50">No tenants yet. Create your first one.</GlassCard>
       ) : (
-        <div className="stagger-children grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {tenants.map((tenant) => (
-            <GlassCard key={tenant.id} interactive className="flex flex-col gap-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aurora-accent">
-                    <Building2 size={18} />
-                  </div>
-                  <div>
-                    <p className="font-semibold">{tenant.name}</p>
-                    <p className="text-xs text-aurora-text/50">{tenant.subdomain}.operadash.com</p>
-                  </div>
-                </div>
-                <span
-                  className={`aurora-badge ${tenant.active ? "border-aurora-success/40 text-aurora-success" : "border-aurora-error/40 text-aurora-error"}`}
-                >
-                  {tenant.active ? "Active" : "Disabled"}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <span className="aurora-badge border-aurora-accent/40 text-aurora-accent">{titleCase(tenant.plan)}</span>
-                <span className="inline-flex items-center gap-1 text-aurora-text/60">
-                  <UsersIcon size={14} /> {tenant._count.users}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                {tenant.enabledModules.length === 0 ? (
-                  <span className="text-xs text-aurora-text/40">No modules enabled</span>
-                ) : (
-                  tenant.enabledModules.map((m) => (
-                    <span key={m} className="aurora-badge border-aurora-blue/40 text-aurora-blue">
-                      {titleCase(m)}
-                    </span>
-                  ))
-                )}
-              </div>
-
-              <p className="text-sm text-aurora-text/60">Monthly revenue: {formatCurrency(tenant.monthlyRevenue)}</p>
-
-              <div className="mt-auto flex items-center gap-2 border-t border-black/10 pt-4">
-                <Link to={`/admin/tenants/${tenant.id}`} className="flex-1">
-                  <AuroraButton variant="ghost" size="sm" icon={<ExternalLink size={14} />} className="w-full">
-                    Manage
-                  </AuroraButton>
-                </Link>
-                <AuroraButton
-                  variant="ghost"
-                  size="sm"
-                  icon={<LogIn size={14} />}
-                  onClick={() => handleImpersonate(tenant)}
-                  title="Sign in as this tenant's admin"
-                >
-                  Enter
-                </AuroraButton>
-                <AuroraButton variant="ghost" size="sm" icon={<Power size={14} />} onClick={() => toggleActive(tenant)}>
-                  {tenant.active ? "Disable" : "Enable"}
-                </AuroraButton>
-              </div>
-            </GlassCard>
-          ))}
-        </div>
+        <Table<TenantRow>
+          keyField="id"
+          isLoading={isLoading}
+          columns={tenantColumns}
+          data={tenants}
+          actions={(tenant) => (
+            <div className="flex items-center justify-end gap-1">
+              <Link to={`/admin/tenants/${tenant.id}`} title="Manage">
+                <button className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent">
+                  <ExternalLink size={15} />
+                </button>
+              </Link>
+              <button
+                onClick={() => handleImpersonate(tenant)}
+                title="Sign in as this tenant's admin"
+                className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
+              >
+                <LogIn size={15} />
+              </button>
+              <button
+                onClick={() => toggleActive(tenant)}
+                title={tenant.active ? "Disable" : "Enable"}
+                className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-error"
+              >
+                <Power size={15} />
+              </button>
+            </div>
+          )}
+        />
       )}
 
       <Modal

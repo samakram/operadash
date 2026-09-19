@@ -4,7 +4,7 @@ import * as hotelService from "@/services/hotel.service";
 import { authenticate, requireRole } from "@/middleware/auth";
 import { resolveTenant } from "@/middleware/tenantIsolation";
 import { requireModule } from "@/middleware/moduleGuard";
-import { requireFeature } from "@/middleware/featureGuard";
+import { requireFeature, requireStaffFeature } from "@/middleware/featureGuard";
 import { paginationSchema } from "@/utils/validators";
 import { sendCsv } from "@/utils/csv";
 import { recordAudit } from "@/utils/audit";
@@ -15,9 +15,9 @@ router.use(authenticate, resolveTenant, requireModule("hotel"));
 // Staff can read/create/update within the module; deleting is admin-only.
 router.delete("*", requireRole("tenant_admin", "super_admin"));
 // Optional sub-features a tenant admin can turn off — see utils/featureCatalog.ts.
-router.use("/tasks", requireFeature("hotel", "tasks"));
-router.use("/maintenance", requireFeature("hotel", "maintenance"));
-router.use("/invoices", requireFeature("hotel", "invoices"));
+router.use("/tasks", requireFeature("hotel", "tasks"), requireStaffFeature("hotel", "tasks"));
+router.use("/maintenance", requireFeature("hotel", "maintenance"), requireStaffFeature("hotel", "maintenance"));
+router.use("/invoices", requireFeature("hotel", "invoices"), requireStaffFeature("hotel", "invoices"));
 
 // ============================================================
 // Shared zod helpers

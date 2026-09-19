@@ -35,18 +35,21 @@ export function Navbar({ onOpenMobileNav }: { onOpenMobileNav?: () => void }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          onClick={() => setNotificationsOpen(true)}
-          className="relative hidden rounded-lg p-2 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text sm:block"
-          aria-label="Notifications"
-        >
-          <Bell size={18} />
-          {supportCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-aurora-error px-1 text-[10px] font-bold text-white">
-              {supportCount > 9 ? "9+" : supportCount}
-            </span>
-          )}
-        </button>
+        <div className="relative hidden sm:block">
+          <button
+            onClick={() => setNotificationsOpen((o) => !o)}
+            className="relative rounded-lg p-2 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text"
+            aria-label="Notifications"
+          >
+            <Bell size={18} />
+            {supportCount > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-aurora-error px-1 text-[10px] font-bold text-white">
+                {supportCount > 9 ? "9+" : supportCount}
+              </span>
+            )}
+          </button>
+          <NotificationDrawer open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+        </div>
         <button
           className="hidden rounded-lg p-2 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-text sm:block"
           aria-label="Help"
@@ -82,8 +85,6 @@ export function Navbar({ onOpenMobileNav }: { onOpenMobileNav?: () => void }) {
           )}
         </div>
       </div>
-
-      <NotificationDrawer open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
     </header>
   );
 }

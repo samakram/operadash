@@ -33,7 +33,12 @@ export function createApp(): Express {
   }
 
   app.use(helmet());
-  app.use(cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173", credentials: true }));
+  // CORS_ORIGIN may be a single origin or a comma-separated list (e.g. the
+  // deployed frontend plus a developer's local Vite server) — cors() needs
+  // an array (or a matching function) to reflect one of several origins
+  // back correctly instead of always echoing just the first one.
+  const allowedOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(",").map((o) => o.trim());
+  app.use(cors({ origin: allowedOrigins, credentials: true }));
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/health" } }));
 
   // Stripe webhooks need the raw body for signature verification.

@@ -26,15 +26,36 @@ function ImpersonationBanner() {
   );
 }
 
+const COLLAPSE_STORAGE_KEY = "operadash_sidebar_collapsed";
+
 export function MainLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COLLAPSE_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const { impersonating } = useAuth();
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        // localStorage unavailable (private mode, etc.) — collapse still works for this session
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden">
       {impersonating && <ImpersonationBanner />}
       <div className="flex min-h-0 w-full flex-1 overflow-hidden">
-        <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
+        <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
         <div className="flex min-w-0 flex-1 flex-col">
           <Navbar onOpenMobileNav={() => setMobileNavOpen(true)} />
           <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">

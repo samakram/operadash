@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Mail, Phone, DollarSign, Pencil, Trash2 } from "lucide-react";
+import { Plus, Mail, Phone, DollarSign, Pencil, Trash2, UserCheck, CheckCircle2 } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
 import { AuroraButton } from "@/components/Common/AuroraButton";
@@ -24,7 +24,15 @@ interface Lead {
   stage: LeadStage;
   source: string | null;
   notes: string | null;
+  convertedRecordId: string | null;
 }
+
+const MODULE_RECORD_LABEL: Record<ModuleName, string> = {
+  hotel: "guest",
+  student: "student",
+  patient: "patient",
+  restaurant: "customer",
+};
 
 interface BoardResponse {
   stages: LeadStage[];
@@ -32,19 +40,29 @@ interface BoardResponse {
   total: number;
 }
 
+// Distinct hues per stage — aurora-blue/cyan/accent all resolve to the same
+// blue in the shared palette, which is why every column used to look
+// identical. These are local to the pipeline, not a design-system change.
+const STAGE_COLORS: Record<LeadStage, string> = {
+  new: "#6366F1",
+  contacted: "#0EA5E9",
+  qualified: "#F59E0B",
+  won: "#22C55E",
+  lost: "#EF4444",
+};
 const STAGE_ACCENTS: Record<LeadStage, string> = {
-  new: "text-aurora-blue",
-  contacted: "text-aurora-cyan",
-  qualified: "text-aurora-accent",
+  new: "text-aurora-text/80",
+  contacted: "text-aurora-text/80",
+  qualified: "text-aurora-text/80",
   won: "text-aurora-success",
   lost: "text-aurora-error",
 };
 const DEFAULT_COLUMNS: KanbanColumn[] = [
-  { id: "new", label: "New", accentClass: STAGE_ACCENTS.new },
-  { id: "contacted", label: "Contacted", accentClass: STAGE_ACCENTS.contacted },
-  { id: "qualified", label: "Qualified", accentClass: STAGE_ACCENTS.qualified },
-  { id: "won", label: "Won", accentClass: STAGE_ACCENTS.won },
-  { id: "lost", label: "Lost", accentClass: STAGE_ACCENTS.lost },
+  { id: "new", label: "New", accentClass: STAGE_ACCENTS.new, color: STAGE_COLORS.new },
+  { id: "contacted", label: "Contacted", accentClass: STAGE_ACCENTS.contacted, color: STAGE_COLORS.contacted },
+  { id: "qualified", label: "Qualified", accentClass: STAGE_ACCENTS.qualified, color: STAGE_COLORS.qualified },
+  { id: "won", label: "Won", accentClass: STAGE_ACCENTS.won, color: STAGE_COLORS.won },
+  { id: "lost", label: "Lost", accentClass: STAGE_ACCENTS.lost, color: STAGE_COLORS.lost },
 ];
 
 const emptyForm = { title: "", contactName: "", contactEmail: "", contactPhone: "", estimatedValue: "", source: "", notes: "" };
@@ -58,6 +76,9 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
   const [editing, setEditing] = useState<Lead | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [convertTarget, setConvertTarget] = useState<Lead | null>(null);
+  const [convertDob, setConvertDob] = useState("");
+  const [isConverting, setIsConverting] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -79,7 +100,7 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
   useEffect(() => {
     api
       .get<{ stage: LeadStage; label: string }[]>("/leads/stage-labels", { params: { module } })
-      .then(({ data }) => setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage] }))))
+      .then(({ data }) => setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage], color: STAGE_COLORS[s.stage] }))))
       .catch(() => undefined);
   }, [module]);
 
@@ -88,7 +109,7 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
     setColumns((prev) => prev.map((c) => (c.id === stage ? { ...c, label: newLabel } : c)));
     try {
       const { data } = await api.patch<{ stage: LeadStage; label: string }[]>("/leads/stage-labels", { module, stage, label: newLabel });
-      setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage] })));
+      setColumns(data.map((s) => ({ id: s.stage, label: s.label, accentClass: STAGE_ACCENTS[s.stage], color: STAGE_COLORS[s.stage] })));
     } catch (err) {
       setColumns(previous);
       show(getApiErrorMessage(err, "Failed to rename stage"), "error");
@@ -156,6 +177,29 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
     }
   };
 
+  const openConvert = (lead: Lead) => {
+    if (module === "patient") {
+      setConvertDob("");
+      setConvertTarget(lead);
+      return;
+    }
+    void doConvert(lead);
+  };
+
+  const doConvert = async (lead: Lead, dateOfBirth?: string) => {
+    setIsConverting(true);
+    try {
+      await api.post(`/leads/${lead.id}/convert`, dateOfBirth ? { dateOfBirth } : {});
+      show(`Converted to a ${MODULE_RECORD_LABEL[module]} record`, "success");
+      setConvertTarget(null);
+      await load();
+    } catch (err) {
+      show(getApiErrorMessage(err, "Failed to convert lead"), "error");
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
   if (isLoading) return <LoadingSpinner fullscreen />;
 
   return (
@@ -215,6 +259,20 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
                 <DollarSign size={11} /> {formatCurrency(lead.estimatedValue)}
               </p>
             )}
+            {lead.stage === "won" &&
+              (lead.convertedRecordId ? (
+                <p className="flex items-center gap-1 text-xs font-medium text-aurora-success">
+                  <CheckCircle2 size={12} /> Converted to {MODULE_RECORD_LABEL[module]}
+                </p>
+              ) : (
+                <button
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => openConvert(lead)}
+                  className="mt-1 flex w-fit items-center gap-1 rounded-full border border-aurora-success/40 px-2 py-1 text-xs font-medium text-aurora-success hover:bg-aurora-success/10"
+                >
+                  <UserCheck size={12} /> Convert to {MODULE_RECORD_LABEL[module]}
+                </button>
+              ))}
           </GlassCard>
         )}
       />
@@ -253,6 +311,26 @@ export function LeadsBoard({ module, label }: { module: ModuleName; label: strin
             <GlassTextarea label="Notes" rows={3} value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} />
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(convertTarget)}
+        onClose={() => setConvertTarget(null)}
+        title="Convert to patient"
+        size="sm"
+        footer={
+          <>
+            <AuroraButton variant="ghost" onClick={() => setConvertTarget(null)}>
+              Cancel
+            </AuroraButton>
+            <AuroraButton isLoading={isConverting} disabled={!convertDob} onClick={() => convertTarget && doConvert(convertTarget, convertDob)}>
+              Convert
+            </AuroraButton>
+          </>
+        }
+      >
+        <p className="mb-3 text-sm text-aurora-text/70">A patient record needs a date of birth, which this lead doesn't have yet.</p>
+        <GlassInput label="Date of birth" type="date" required value={convertDob} onChange={(e) => setConvertDob(e.target.value)} />
       </Modal>
     </div>
   );

@@ -24,7 +24,11 @@ export default {
           bg: "#FFFFFF",
           surface: "#FFFFFF",
           border: "#E5E5EA",
-          text: "#1C1C1E",
+          // Headings/labels get "ink" — a deliberate near-black, not pure #000.
+          // Body copy gets "text" — a real slate, not a washed-out black-opacity
+          // gray — so the hierarchy reads as designed rather than flat gray/black.
+          ink: "#101114",
+          text: "#3F3F46",
         },
       },
       fontFamily: {

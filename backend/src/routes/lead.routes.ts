@@ -107,4 +107,17 @@ router.delete("/:id", async (req, res, next) => {
   }
 });
 
+const convertSchema = z.object({ dateOfBirth: emptyToUndefined(z.string()) });
+
+router.post("/:id/convert", async (req, res, next) => {
+  try {
+    const options = convertSchema.parse(req.body);
+    const lead = await leadService.convertLead(req.tenantId!, req.params.id, options);
+    await recordAudit(req, "update", "lead", lead.id, { convertedRecordId: lead.convertedRecordId });
+    res.json(lead);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

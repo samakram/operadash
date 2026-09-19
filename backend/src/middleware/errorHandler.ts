@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 import { AppError } from "@/utils/errors";
 import { logger } from "@/utils/logger";
+import { captureException } from "@/utils/monitoring";
 
 export function notFoundHandler(req: Request, res: Response): void {
   res.status(404).json({ error: { code: "NOT_FOUND", message: `No route for ${req.method} ${req.path}` } });
@@ -34,5 +35,6 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   }
 
   logger.error({ err, path: req.path, method: req.method }, "Unhandled error");
+  captureException(err);
   res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Something went wrong" } });
 }

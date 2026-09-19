@@ -4,6 +4,7 @@ import { prisma } from "@/database/db";
 import { AppError } from "@/utils/errors";
 import { hashPassword, sanitizeUser } from "@/services/auth.service";
 import { sendWelcomeEmail } from "@/services/email.service";
+import { PLAN_PRICES_USD, recordBillingEvent } from "@/services/billing.service";
 import { logger } from "@/utils/logger";
 import { buildPaginatedResult, type PaginationQuery } from "@/utils/validators";
 
@@ -114,11 +115,18 @@ export interface UpdateTenantInput {
 }
 
 export async function updateTenant(tenantId: string, input: UpdateTenantInput) {
-  await ensureTenantExists(tenantId);
-  return prisma.tenant.update({
+  const existing = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { plan: true } });
+  if (!existing) {
+    throw AppError.notFound("Tenant not found");
+  }
+  const updated = await prisma.tenant.update({
     where: { id: tenantId },
     data: input as Prisma.TenantUpdateInput,
   });
+  if (input.plan && input.plan !== existing.plan) {
+    await recordBillingEvent(tenantId, "plan_change", `Plan changed to ${input.plan} by an administrator`, PLAN_PRICES_USD[input.plan], input.plan);
+  }
+  return updated;
 }
 
 export async function setTenantModules(tenantId: string, modules: ModuleName[]) {

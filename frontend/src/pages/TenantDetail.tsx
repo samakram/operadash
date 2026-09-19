@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2, ScrollText, Receipt } from "lucide-react";
+import { ArrowLeft, Trash2, LogIn, UserPlus, KeyRound, X, Pencil, Building2, ScrollText, Receipt, Clock, ShieldCheck } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { GlassCard } from "@/components/Common/GlassCard";
+import { StaffPermissionsModal } from "@/components/Common/StaffPermissionsModal";
 import { AuroraButton } from "@/components/Common/AuroraButton";
 import { GlassInput, GlassSelect } from "@/components/Common/GlassInput";
 import { Modal } from "@/components/Common/Modal";
@@ -35,6 +36,15 @@ interface FeatureFlagRow {
   enabled: boolean;
 }
 
+interface BillingEventRow {
+  id: string;
+  type: string;
+  description: string;
+  amount: string | null;
+  plan: PlanTier | null;
+  createdAt: string;
+}
+
 const ALL_MODULES: ModuleName[] = ["hotel", "student", "patient", "restaurant"];
 const PLAN_OPTIONS: { value: PlanTier; label: string }[] = [
   { value: "free", label: "Free" },
@@ -62,6 +72,7 @@ export default function TenantDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [features, setFeatures] = useState<FeatureFlagRow[]>([]);
+  const [billingEvents, setBillingEvents] = useState<BillingEventRow[]>([]);
 
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [userForm, setUserForm] = useState(emptyUserForm);
@@ -73,6 +84,7 @@ export default function TenantDetail() {
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   const [deleteUserTarget, setDeleteUserTarget] = useState<TenantUser | null>(null);
+  const [permissionsTarget, setPermissionsTarget] = useState<TenantUser | null>(null);
 
   const [logoModalOpen, setLogoModalOpen] = useState(false);
   const [logoUrlInput, setLogoUrlInput] = useState("");
@@ -86,12 +98,14 @@ export default function TenantDetail() {
     if (!id) return;
     setIsLoading(true);
     try {
-      const [{ data }, { data: featureData }] = await Promise.all([
+      const [{ data }, { data: featureData }, { data: billingData }] = await Promise.all([
         api.get<TenantDetailResponse>(`/tenants/${id}`),
         api.get<FeatureFlagRow[]>(`/tenants/${id}/features`),
+        api.get<BillingEventRow[]>(`/billing/history`, { params: { tenantId: id } }),
       ]);
       setTenant(data);
       setFeatures(featureData);
+      setBillingEvents(billingData);
     } catch (err) {
       show(getApiErrorMessage(err, "Failed to load tenant"), "error");
     } finally {
@@ -319,6 +333,28 @@ export default function TenantDetail() {
         </GlassCard>
       </div>
 
+      <GlassCard className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Clock size={16} className="text-aurora-text/50" />
+          <h3>Billing history</h3>
+        </div>
+        {billingEvents.length === 0 ? (
+          <p className="text-sm text-aurora-text/60">No plan changes or checkouts recorded yet.</p>
+        ) : (
+          <div className="flex flex-col divide-y divide-black/10">
+            {billingEvents.map((event) => (
+              <div key={event.id} className="flex items-center justify-between gap-4 py-2.5">
+                <div>
+                  <p className="text-sm">{event.description}</p>
+                  <p className="text-xs text-aurora-text/50">{formatDate(event.createdAt)}</p>
+                </div>
+                {event.amount && <p className="text-sm font-medium">{formatCurrency(event.amount)}/mo</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+
       {tenant.enabledModules.length > 0 && (
         <GlassCard className="flex flex-col gap-4">
           <div>
@@ -392,6 +428,16 @@ export default function TenantDetail() {
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 <span className="aurora-badge border-black/20">{titleCase(u.role)}</span>
+                {u.role === "staff" && (
+                  <button
+                    onClick={() => setPermissionsTarget(u)}
+                    className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
+                    aria-label="Module permissions"
+                    title="Module permissions"
+                  >
+                    <ShieldCheck size={16} />
+                  </button>
+                )}
                 <button
                   onClick={() => openResetPassword(u)}
                   className="rounded-lg p-1.5 text-aurora-text/60 transition hover:bg-black/10 hover:text-aurora-accent"
@@ -598,6 +644,12 @@ export default function TenantDetail() {
           />
         </div>
       </Modal>
+
+      <StaffPermissionsModal
+        userId={permissionsTarget?.id ?? null}
+        userName={permissionsTarget ? `${permissionsTarget.firstName ?? ""} ${permissionsTarget.lastName ?? ""}`.trim() || permissionsTarget.email : ""}
+        onClose={() => setPermissionsTarget(null)}
+      />
     </div>
   );
 }
