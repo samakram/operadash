@@ -72,6 +72,24 @@ interface DashboardVisit {
   provider: { firstName: string; lastName: string } | null;
 }
 
+interface DashboardShift {
+  id: string;
+  startTime: string;
+  endTime: string;
+  department: string | null;
+  staff: { firstName: string; lastName: string } | null;
+}
+
+interface DashboardSurgery {
+  id: string;
+  procedure: string;
+  operatingRoom: string | null;
+  scheduledStart: string;
+  status: string;
+  patient: { firstName: string; lastName: string } | null;
+  surgeon: { firstName: string; lastName: string } | null;
+}
+
 interface DashboardData {
   totalPatients: number;
   appointmentsToday: number;
@@ -79,6 +97,8 @@ interface DashboardData {
   refillsDue: number;
   upcomingAppointments: DashboardAppointment[];
   recentVisits: DashboardVisit[];
+  onCallNow: DashboardShift[];
+  surgeriesToday: DashboardSurgery[];
 }
 
 function KpiCard({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint?: string }) {
@@ -126,6 +146,55 @@ function DashboardTab() {
         <KpiCard icon={<CalendarClock size={20} />} label="Appointments today" value={String(data.appointmentsToday)} />
         <KpiCard icon={<FlaskConical size={20} />} label="Results needing review" value={String(data.resultsNeedingReview)} hint="Abnormal/critical, last 7 days" />
         <KpiCard icon={<Pill size={20} />} label="Refills due" value={String(data.refillsDue)} hint="1 or fewer refills remaining" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <GlassCard padding="none">
+          <div className="border-b border-black/10 px-6 py-4">
+            <h3>On call now</h3>
+          </div>
+          <div className="divide-y divide-black/5">
+            {data.onCallNow.length === 0 ? (
+              <p className="px-6 py-8 text-center text-sm text-aurora-text/50">No one is on shift right now.</p>
+            ) : (
+              data.onCallNow.map((s) => (
+                <div key={s.id} className="flex items-center justify-between px-6 py-3">
+                  <div>
+                    <p className="text-sm font-medium">{personName(s.staff)}</p>
+                    <p className="text-xs text-aurora-text/50">
+                      {s.department ?? "Unassigned dept."} &middot; until {formatDateTime(s.endTime)}
+                    </p>
+                  </div>
+                  <span className="aurora-badge border-aurora-success/40 text-aurora-success">On call</span>
+                </div>
+              ))
+            )}
+          </div>
+        </GlassCard>
+
+        <GlassCard padding="none">
+          <div className="border-b border-black/10 px-6 py-4">
+            <h3>In surgery today</h3>
+          </div>
+          <div className="divide-y divide-black/5">
+            {data.surgeriesToday.length === 0 ? (
+              <p className="px-6 py-8 text-center text-sm text-aurora-text/50">No surgeries scheduled today.</p>
+            ) : (
+              data.surgeriesToday.map((s) => (
+                <div key={s.id} className="flex items-center justify-between px-6 py-3">
+                  <div>
+                    <p className="text-sm font-medium">{personName(s.patient)}</p>
+                    <p className="text-xs text-aurora-text/50">
+                      {s.procedure} &middot; {s.surgeon ? `Dr. ${s.surgeon.lastName}` : "Unassigned"} &middot; {formatDateTime(s.scheduledStart)}
+                      {s.operatingRoom ? ` · OR ${s.operatingRoom}` : ""}
+                    </p>
+                  </div>
+                  <StatusBadge value={s.status} />
+                </div>
+              ))
+            )}
+          </div>
+        </GlassCard>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

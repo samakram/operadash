@@ -871,11 +871,12 @@ const calendarRangeSchema = z.object({ from: z.coerce.date(), to: z.coerce.date(
 router.get("/calendar", async (req, res, next) => {
   try {
     const { from, to } = calendarRangeSchema.parse(req.query);
-    const [shifts, surgeries] = await Promise.all([
+    const [shifts, surgeries, appointments] = await Promise.all([
       patientService.listShiftsInRange(req.tenantId!, from, to),
       patientService.listSurgeriesInRange(req.tenantId!, from, to),
+      patientService.listAppointmentsInRange(req.tenantId!, from, to),
     ]);
-    res.json({ shifts, surgeries });
+    res.json({ shifts, surgeries, appointments });
   } catch (err) {
     next(err);
   }

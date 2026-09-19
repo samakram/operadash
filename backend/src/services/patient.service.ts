@@ -290,6 +290,15 @@ export async function listAppointments(tenantId: string, query: PaginationQuery)
   return buildPaginatedResult(data, total, query);
 }
 
+/** Appointments overlapping [from, to) — for the unified staff/surgery/appointment calendar. */
+export async function listAppointmentsInRange(tenantId: string, from: Date, to: Date) {
+  return prisma.patientAppointment.findMany({
+    where: { tenantId, appointmentDatetime: { gte: from, lt: to } },
+    orderBy: { appointmentDatetime: "asc" },
+    include: APPOINTMENT_INCLUDE,
+  });
+}
+
 export async function exportAppointments(tenantId: string, search?: string) {
   const rows = await prisma.patientAppointment.findMany({
     where: buildAppointmentWhere(tenantId, search),
@@ -1102,28 +1111,41 @@ export async function getDashboard(tenantId: string) {
   const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [totalPatients, appointmentsToday, resultsNeedingReview, refillsDue, upcomingAppointments, recentVisits] = await Promise.all([
-    prisma.patientPatient.count({ where: { tenantId } }),
-    prisma.patientAppointment.count({ where: { tenantId, appointmentDatetime: { gte: todayStart, lt: todayEnd } } }),
-    prisma.patientLabResult.count({
-      where: { tenantId, testDate: { gte: sevenDaysAgo }, status: { in: ["abnormal", "critical"] } },
-    }),
-    prisma.patientPrescription.count({
-      where: { tenantId, refillsRemaining: { lte: 1 }, OR: [{ endDate: null }, { endDate: { gt: now } }] },
-    }),
-    prisma.patientAppointment.findMany({
-      where: { tenantId, status: "scheduled", appointmentDatetime: { gte: now } },
-      orderBy: { appointmentDatetime: "asc" },
-      take: 5,
-      include: APPOINTMENT_INCLUDE,
-    }),
-    prisma.patientMedicalRecord.findMany({
-      where: { tenantId },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: MEDICAL_RECORD_INCLUDE,
-    }),
-  ]);
+  const [totalPatients, appointmentsToday, resultsNeedingReview, refillsDue, upcomingAppointments, recentVisits, onCallNow, surgeriesToday] =
+    await Promise.all([
+      prisma.patientPatient.count({ where: { tenantId } }),
+      prisma.patientAppointment.count({ where: { tenantId, appointmentDatetime: { gte: todayStart, lt: todayEnd } } }),
+      prisma.patientLabResult.count({
+        where: { tenantId, testDate: { gte: sevenDaysAgo }, status: { in: ["abnormal", "critical"] } },
+      }),
+      prisma.patientPrescription.count({
+        where: { tenantId, refillsRemaining: { lte: 1 }, OR: [{ endDate: null }, { endDate: { gt: now } }] },
+      }),
+      prisma.patientAppointment.findMany({
+        where: { tenantId, status: "scheduled", appointmentDatetime: { gte: now } },
+        orderBy: { appointmentDatetime: "asc" },
+        take: 5,
+        include: APPOINTMENT_INCLUDE,
+      }),
+      prisma.patientMedicalRecord.findMany({
+        where: { tenantId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: MEDICAL_RECORD_INCLUDE,
+      }),
+      // "On call" = has a shift covering this exact moment, not just today —
+      // a shift that ended an hour ago shouldn't still claim someone is on call.
+      prisma.patientShift.findMany({
+        where: { tenantId, status: "scheduled", startTime: { lte: now }, endTime: { gte: now } },
+        orderBy: { endTime: "asc" },
+        include: SHIFT_INCLUDE,
+      }),
+      prisma.patientSurgery.findMany({
+        where: { tenantId, scheduledStart: { gte: todayStart, lt: todayEnd }, status: { in: ["scheduled", "in_progress"] } },
+        orderBy: { scheduledStart: "asc" },
+        include: SURGERY_INCLUDE,
+      }),
+    ]);
 
   return {
     totalPatients,
@@ -1132,6 +1154,8 @@ export async function getDashboard(tenantId: string) {
     refillsDue,
     upcomingAppointments,
     recentVisits,
+    onCallNow,
+    surgeriesToday,
   };
 }
 
