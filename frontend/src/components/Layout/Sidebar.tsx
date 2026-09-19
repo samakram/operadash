@@ -107,7 +107,7 @@ function NavList({ items, onNavigate, collapsed }: { items: NavItem[]; onNavigat
               )}
             </NavLink>
             {item.moduleKey && !collapsed && (
-              <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-aurora-border pl-3">
+              <div className="ml-4 mt-1 flex flex-col divide-y divide-black/[0.05] border-l border-aurora-border pl-3">
                 {MODULE_FEATURES[item.moduleKey].map((feature) => (
                   <NavLink
                     key={feature.to}
@@ -115,9 +115,9 @@ function NavList({ items, onNavigate, collapsed }: { items: NavItem[]; onNavigat
                     onClick={onNavigate}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-aurora-text/60 transition-colors duration-150",
+                        "flex items-center gap-2.5 px-2.5 py-1.5 text-[13px] font-medium text-aurora-text/60 transition-colors duration-150",
                         "hover:bg-black/[0.04] hover:text-aurora-text",
-                        isActive && "bg-aurora-accent-soft text-aurora-accent",
+                        isActive && "rounded-md bg-aurora-accent-soft text-aurora-accent",
                       )
                     }
                   >

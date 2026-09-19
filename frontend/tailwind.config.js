@@ -24,11 +24,13 @@ export default {
           bg: "#FFFFFF",
           surface: "#FFFFFF",
           border: "#E5E5EA",
-          // Headings/labels get "ink" — a deliberate near-black, not pure #000.
-          // Body copy gets "text" — a real slate, not a washed-out black-opacity
-          // gray — so the hierarchy reads as designed rather than flat gray/black.
-          ink: "#101114",
-          text: "#3F3F46",
+          // A slate-based hierarchy (cool undertone), not achromatic
+          // gray/black — this is the actual visual difference between
+          // "designed" and "default browser text". ink = headings/emphasis,
+          // text = body/labels (both derive their /40../90 muted tiers from
+          // these two, so the whole app's grays shift together).
+          ink: "#0F172A",
+          text: "#1E293B",
         },
       },
       fontFamily: {
